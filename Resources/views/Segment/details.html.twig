@@ -27,7 +27,6 @@ Variables
         'templateButtons': {
             'edit': securityHasEntityAccess(permissions['lead:leads:editown'], permissions['lead:lists:editother'], segment.createdBy),
             'delete': securityHasEntityAccess(permissions['lead:lists:deleteother'], permissions['lead:lists:editother'], segment.createdBy),
-            'close': securityHasEntityAccess(permissions['lead:leads:editown'], permissions['lead:lists:viewother'], segment.createdBy),
             'clone': securityHasEntityAccess(permissions['lead:leads:editown'], permissions['lead:lists:viewother'], segment.createdBy),
         },
         'routeBase': 'company_segments',
