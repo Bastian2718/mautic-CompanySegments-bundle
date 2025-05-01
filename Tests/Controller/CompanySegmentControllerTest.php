@@ -142,7 +142,7 @@ class CompanySegmentControllerTest extends MauticMysqlTestCase
         self::assertResponseIsSuccessful();
         self::assertStringContainsString($companySegmentName, $crawler->filter('.page-header')->text());
 
-        $link = $crawler->filter('#toolbar a')->eq(3);
+        $link = $crawler->filter('#toolbar a')->eq(2);
         self::assertSame('Delete', $link->text());
         $crawler = $this->client->click($link->link(Request::METHOD_POST));
         self::assertResponseIsSuccessful();
@@ -190,7 +190,7 @@ class CompanySegmentControllerTest extends MauticMysqlTestCase
         self::assertResponseIsSuccessful();
         self::assertStringContainsString($companySegmentName, $crawler->filter('.page-header')->text());
 
-        $link = $crawler->filter('#toolbar a')->eq(2);
+        $link = $crawler->filter('#toolbar a')->eq(1);
         self::assertSame('Clone', $link->text());
         $crawler = $this->client->click($link->link());
         self::assertResponseIsSuccessful();
