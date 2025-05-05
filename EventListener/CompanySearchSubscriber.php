@@ -27,7 +27,7 @@ class CompanySearchSubscriber implements EventSubscriberInterface
 
     /**
      * @see \Mautic\LeadBundle\Entity\LeadRepository::addSearchCommandWhereClause mautic.lead.lead.searchcommand.list for copied implementation
-     * @see \Mautic\LeadBundle\Entity\CompanyRepository::addSearchCommandWhereClause where the event is executed.
+     * @see CompanyRepository::addSearchCommandWhereClause where the event is executed.
      * @see \Mautic\CoreBundle\Entity\CommonRepository::parseSearchFilters where the event is checked and executed.
      */
     public function onBuildSearch(CompanyBuildSearchEvent $event): void
