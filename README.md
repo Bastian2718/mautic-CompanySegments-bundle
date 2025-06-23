@@ -51,7 +51,7 @@ In Campaigns, you now have a new Actions called:
 
 In Campaigns, you now have a new Condition called "Company Segments"
 
-In Reports, you now have a new data source "Company Tags" that allows you to filter on Company Tags.
+In Reports, you now have a new data source "Company Segments" that allows you to filter on Company Segments.
 
 To update the Company Segments based on their filter, there is a console command as cron job: `php bin/console leuchtfeuer:abm:segments-update`. It works just like with lead segments.
 
