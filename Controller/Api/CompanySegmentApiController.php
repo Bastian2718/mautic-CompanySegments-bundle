@@ -132,7 +132,7 @@ class CompanySegmentApiController extends CommonApiController
 
             try {
                 $json = json_encode($result, JSON_THROW_ON_ERROR);
-            } catch (\JsonException $e) {
+            } catch (\JsonException) {
                 $json = json_encode(
                     ['errors' => $this->translator->trans('mautic.core.error.json_encode_failed')]
                 );

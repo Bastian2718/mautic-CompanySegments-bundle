@@ -586,7 +586,7 @@ class CompanySegmentModel extends FormModel
                     continue;
                 }
 
-                if (!array_key_exists('properties', $eachFilter) || !array_key_exists('filter', $eachFilter['properties'])) {
+                if (!array_key_exists('filter', $eachFilter['properties'])) {
                     continue;
                 }
                 /** @var array<int> $filterValue */
