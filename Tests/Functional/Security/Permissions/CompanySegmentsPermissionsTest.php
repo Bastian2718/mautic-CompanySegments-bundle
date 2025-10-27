@@ -28,8 +28,12 @@ class CompanySegmentsPermissionsTest extends MauticMysqlTestCase
         // Disable the default logging in via username and password.
         $this->clientServer = [];
         $this->setUpSymfony($this->configParams);
-        $this->loginUser($user->getUsername());
-        $this->client->setServerParameter('PHP_AUTH_USER', $user->getUsername());
+        $this->loginUser($user);
+        $username = 'admin';
+        if (is_string($user->getUsername())) {
+            $username = $user->getUsername();
+        }
+        $this->client->setServerParameter('PHP_AUTH_USER', $username);
         $this->client->setServerParameter('PHP_AUTH_PW', $password);
     }
 

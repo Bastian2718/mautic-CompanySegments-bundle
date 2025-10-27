@@ -196,12 +196,18 @@ class ReportSubscriberTest extends TestCase
         $tables = $this->reportBuilderEventMock->getTables();
 
         self::assertArrayHasKey('company_segments', $tables);
+        self::assertIsArray($tables['company_segments']);
+        self::assertArrayHasKey('columns', $tables['company_segments']);
+        self::assertArrayHasKey('filters', $tables['company_segments']);
+        self::assertIsArray($tables['company_segments']['columns']);
+        self::assertIsArray($tables['company_segments']['filters']);
         self::assertCount(16, $tables['company_segments']['columns']);
         self::assertCount(17, $tables['company_segments']['filters']);
 
         $segmentFilter = $tables['company_segments']['filters'][ReportSubscriber::COMPANY_SEGMENTS_XREF_PREFIX.'.segment_id'];
         self::assertIsArray($segmentFilter);
         self::assertArrayHasKey('list', $segmentFilter);
+        self::assertIsArray($segmentFilter['list']);
         self::assertCount(4, $segmentFilter['list']);
         self::assertEquals(['1' => 'a', '2' => 'b', '3' => 'c', '4' => 'd'], $segmentFilter['list']);
     }
@@ -222,11 +228,17 @@ class ReportSubscriberTest extends TestCase
 
         $this->reportSubscriber->onReportBuilder($this->reportBuilderEventMock);
         $tables        = $this->reportBuilderEventMock->getTables();
-        $segmentFilter = $tables['company_segments']['filters'][ReportSubscriber::COMPANY_SEGMENTS_XREF_PREFIX.'.segment_id'];
 
         self::assertArrayHasKey('company_segments', $tables);
+        self::assertIsArray($tables['company_segments']);
+        self::assertArrayHasKey('columns', $tables['company_segments']);
+        self::assertIsArray($tables['company_segments']['columns']);
+        self::assertArrayHasKey('filters', $tables['company_segments']);
+        self::assertIsArray($tables['company_segments']['filters']);
         self::assertCount(16, $tables['company_segments']['columns']);
         self::assertCount(17, $tables['company_segments']['filters']);
+
+        $segmentFilter = $tables['company_segments']['filters'][ReportSubscriber::COMPANY_SEGMENTS_XREF_PREFIX.'.segment_id'];
 
         self::assertIsArray($segmentFilter);
         self::assertArrayHasKey('list', $segmentFilter);
@@ -234,6 +246,7 @@ class ReportSubscriberTest extends TestCase
 
         self::assertEquals('select', $segmentFilter['type']);
         self::assertArrayHasKey('operators', $segmentFilter);
+        self::assertIsArray($segmentFilter['operators']);
         self::assertCount(4, $segmentFilter['operators']);
     }
 

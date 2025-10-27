@@ -16,12 +16,15 @@ use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompaniesSegmentsReposi
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompanySegment;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Helper\SegmentCountCacheHelper;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Model\CompanySegmentModel;
+use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\HelperCompanySegmentTestTrait;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\MauticMysqlTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class AjaxControllerTest extends MauticMysqlTestCase
 {
+    use HelperCompanySegmentTestTrait;
+
     public function testCompanySegmentFilter(): void
     {
         $this->client->xmlHttpRequest(Request::METHOD_POST, '/s/ajax', [
@@ -189,6 +192,7 @@ class AjaxControllerTest extends MauticMysqlTestCase
         self::assertCount(0, $companySegmentFiltered->getCompaniesSegments(), 'Check that there are no aut-saving to the cache.');
         $companySegmentDependent = $this->getCompanySegment(LoadCompanySegmentData::COMPANY_SEGMENT_DEPENDENT);
         self::assertCount(0, $companySegmentDependent->getCompaniesSegments());
+
         // Though the DB contains "proper" counts of companies in segments, the command need to be executed to fill in the cache.
         $crawler = $this->client->request(Request::METHOD_GET, '/s/company-segments');
         self::assertResponseIsSuccessful();

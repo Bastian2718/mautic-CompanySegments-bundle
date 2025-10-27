@@ -57,10 +57,12 @@ class SegmentReferenceFilterQueryBuilder extends BaseFilterQueryBuilder implemen
 
         $from = $queryBuilder->getQueryPart('from');
         assert(is_array($from));
+
         if (
             array_key_exists(0, $from)
+            && is_array($from[0])
             && array_key_exists('table', $from[0])
-            && $from[0]['table'] === MAUTIC_TABLE_PREFIX.'leads'
+            && $from[0]['table'] === $this->getPreTable().'leads'
         ) {
             return $this->applyQueryToLeadSegment($queryBuilder, $filter);
         }
@@ -70,7 +72,7 @@ class SegmentReferenceFilterQueryBuilder extends BaseFilterQueryBuilder implemen
 
     private function applyQueryToCompanySegment(QueryBuilder $queryBuilder, ContactSegmentFilter $filter): QueryBuilder
     {
-        $companiesTableAlias = $queryBuilder->getTableAlias(MAUTIC_TABLE_PREFIX.'companies');
+        $companiesTableAlias = $queryBuilder->getTableAlias($this->getPreTable().'companies');
         \assert(is_string($companiesTableAlias));
         $segmentIds = $filter->getParameterValue();
         if (OperatorOptions::EMPTY === $filter->getOperator() || 'notEmpty' === $filter->getOperator()) {
@@ -81,13 +83,16 @@ class SegmentReferenceFilterQueryBuilder extends BaseFilterQueryBuilder implemen
                 && is_array($dataArray['properties'])
                 && array_key_exists('current_company_id', $dataArray['properties'])
             ) {
-                $currentSegmentId = (int) $dataArray['properties']['current_company_id'];
+                $raw = $dataArray['properties']['current_company_id'];
+                if (is_int($raw) || (is_string($raw) && ctype_digit($raw)) || is_numeric($raw)) {
+                    $currentSegmentId = (int) $raw;
+                }
             }
 
             $sub  = $queryBuilder->createQueryBuilder();
             $t    = $this->generateRandomParameterName();
             $sub->select('1')
-                ->from(MAUTIC_TABLE_PREFIX.'companies_segments', $t)
+                ->from($this->getPreTable().'companies_segments', $t)
                 ->where($sub->expr()->eq($t.'.company_id', $companiesTableAlias.'.id'));
 
             // exclude current segment id if provided
@@ -117,14 +122,14 @@ class SegmentReferenceFilterQueryBuilder extends BaseFilterQueryBuilder implemen
             /** @var CompanySegment|null $companySegment */
             $companySegment = $this->entityManager->getRepository(CompanySegment::class)->find($segmentId);
             if (null === $companySegment) {
-                throw new SegmentNotFoundException(sprintf('Segment %d used in the filter does not exist anymore.', $segmentId));
+                throw new SegmentNotFoundException(sprintf('Segment %s used in the filter does not exist anymore.', $this->stringify($segmentId)));
             }
 
             $contactSegment = new CompanySegmentAsLeadSegment($companySegment);
             $filters        = $this->leadSegmentFilterFactory->getSegmentFilters($contactSegment);
 
             $segmentQueryBuilder           = $this->companySegmentQueryBuilder->assembleCompaniesSegmentQueryBuilder($companySegment, $filters, true);
-            $subSegmentCompaniesTableAlias = $segmentQueryBuilder->getTableAlias(MAUTIC_TABLE_PREFIX.'companies');
+            $subSegmentCompaniesTableAlias = $segmentQueryBuilder->getTableAlias($this->getPreTable().'companies');
             \assert(is_string($subSegmentCompaniesTableAlias));
             $segmentQueryBuilder->resetQueryParts(['select'])->select('null');
 
@@ -175,12 +180,12 @@ class SegmentReferenceFilterQueryBuilder extends BaseFilterQueryBuilder implemen
 
     private function applyQueryToLeadSegment(QueryBuilder $queryBuilder, ContactSegmentFilter $filter): QueryBuilder
     {
-        $leadAlias               = $queryBuilder->getTableAlias(MAUTIC_TABLE_PREFIX.'leads');
+        $leadAlias               = $queryBuilder->getTableAlias($this->getPreTable().'leads');
         $companiesLeadTableAlias = $this->generateRandomParameterName();
         assert(is_string($leadAlias));
         $queryBuilder->join(
             $leadAlias,
-            MAUTIC_TABLE_PREFIX.'companies_leads',
+            $this->getPreTable().'companies_leads',
             $companiesLeadTableAlias,
             $companiesLeadTableAlias.'.lead_id = '.$leadAlias.'.id AND '.$companiesLeadTableAlias.'.is_primary = 1'
         );
@@ -205,7 +210,7 @@ class SegmentReferenceFilterQueryBuilder extends BaseFilterQueryBuilder implemen
             $companySegment    = $this->entityManager->getRepository(CompanySegment::class)->find($segmentId);
 
             if (null === $companySegment) {
-                throw new SegmentNotFoundException(sprintf('Segment %d used in the filter does not exist anymore.', $segmentId));
+                throw new SegmentNotFoundException(sprintf('Segment %s used in the filter does not exist anymore.', $this->stringify($segmentId)));
             }
 
             $contactSegment      = new CompanySegmentAsLeadSegment($companySegment);
@@ -215,7 +220,7 @@ class SegmentReferenceFilterQueryBuilder extends BaseFilterQueryBuilder implemen
                 $filters,
                 true
             );
-            $subSegmentCompaniesTableAlias = $segmentQueryBuilder->getTableAlias(MAUTIC_TABLE_PREFIX.'companies');
+            $subSegmentCompaniesTableAlias = $segmentQueryBuilder->getTableAlias($this->getPreTable().'companies');
             if (false === $subSegmentCompaniesTableAlias) {
                 $subSegmentCompaniesTableAlias = $this->generateRandomParameterName();
             }
@@ -277,5 +282,30 @@ class SegmentReferenceFilterQueryBuilder extends BaseFilterQueryBuilder implemen
         return [
             LeadEvents::SEGMENT_DICTIONARY_ON_GENERATE => 'onAddFilter',
         ];
+    }
+
+    private function getPreTable(): string
+    {
+        if (is_string(MAUTIC_TABLE_PREFIX)) {
+            return MAUTIC_TABLE_PREFIX;
+        }
+
+        return '';
+    }
+
+    private function stringify(mixed $value): string
+    {
+        if (is_string($value)) {
+            return $value;
+        }
+        if (is_int($value) || is_float($value) || is_bool($value)) {
+            return (string) $value;
+        }
+        if (is_object($value) && method_exists($value, '__toString')) {
+            return (string) $value;
+        }
+        $encoded = @json_encode($value);
+
+        return false !== $encoded ? $encoded : '';
     }
 }

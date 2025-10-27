@@ -117,7 +117,7 @@ class SegmentReferenceFilterQueryBuilderTest extends MauticMysqlTestCase
             ->willReturn('comp');
         $queryBuilder = new QueryBuilder($this->connectionMock);
         $queryBuilder->select('1');
-        $queryBuilder->from(MAUTIC_TABLE_PREFIX.'companies', 'comp');
+        $queryBuilder->from($this->getPreTable().'companies', 'comp');
 
         $filter = $this->getContactSegmentFilter($operator, (string) $this->segment->getId());
 
@@ -126,10 +126,15 @@ class SegmentReferenceFilterQueryBuilderTest extends MauticMysqlTestCase
 
         $this->queryBuilder->applyQuery($queryBuilder, $filter);
 
-        $expectedQuery = str_replace('<prefix>', MAUTIC_TABLE_PREFIX, $expectedQuery);
+        $expectedQuery = str_replace('<prefix>', $this->getPreTable(), $expectedQuery);
 
         // Address https://github.com/mautic/mautic/commit/cf7c599e9aa684db7f0c5d9613980608838775b5
-        if (version_compare(constant('MAUTIC_VERSION'), '5.1', 'lt')) {
+        $version = constant('MAUTIC_VERSION');
+        if (!is_string($version)) {
+            $version = '0';
+        }
+
+        if (version_compare($version, '5.1', 'lt')) {
             $expectedQuery = str_replace([
                 'manually_added = 1',
                 'manually_removed = 0',
@@ -148,7 +153,7 @@ class SegmentReferenceFilterQueryBuilderTest extends MauticMysqlTestCase
             ->willReturn('comp');
         $queryBuilder = new QueryBuilder($this->connectionMock);
         $queryBuilder->select('1');
-        $queryBuilder->from(MAUTIC_TABLE_PREFIX.'companies', 'comp');
+        $queryBuilder->from($this->getPreTable().'companies', 'comp');
 
         $filter = $this->getContactSegmentFilter('eq', 'non_exist_segment_id');
 
@@ -200,5 +205,14 @@ class SegmentReferenceFilterQueryBuilderTest extends MauticMysqlTestCase
             new TableSchemaColumnsCache($this->createMock(EntityManager::class)),
             $this->createMock(FilterQueryBuilderInterface::class)
         );
+    }
+
+    private function getPreTable(): string
+    {
+        if (is_string(MAUTIC_TABLE_PREFIX)) {
+            return MAUTIC_TABLE_PREFIX;
+        }
+
+        return '';
     }
 }

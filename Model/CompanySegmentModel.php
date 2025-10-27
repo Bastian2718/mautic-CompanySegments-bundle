@@ -16,6 +16,7 @@ use Mautic\CoreBundle\Security\Permissions\CorePermissions;
 use Mautic\CoreBundle\Translation\Translator;
 use Mautic\LeadBundle\Entity\Company;
 use Mautic\LeadBundle\Entity\CompanyRepository;
+use Mautic\LeadBundle\Entity\LeadList;
 use Mautic\LeadBundle\Entity\OperatorListTrait;
 use Mautic\LeadBundle\Model\ListModel;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompaniesSegments;
@@ -116,8 +117,12 @@ class CompanySegmentModel extends FormModel
 
         // set some defaults
         $this->setTimestamps($entity, $isNew, $unlock);
-
+        assert($entity instanceof CompanySegment);
         $alias = $entity->getAlias();
+        if (is_null($alias)) {
+            $alias = '';
+        }
+
         $alias = $this->cleanAlias($alias, '', 0, '-');
 
         // make sure alias is not already taken
@@ -164,8 +169,40 @@ class CompanySegmentModel extends FormModel
         }
 
         // Order choices by label.
+        /** @var array<string, array<int, array<string,mixed>>> $choices */
         foreach ($choices as $key => $choice) {
-            $cmp = static fn ($a, $b): int => strcmp($a['label'], $b['label']);
+            if (!is_array($choice)) {
+                // skip invalid choice set
+                continue;
+            }
+
+            $getLabel = static function ($item): string {
+                if (is_array($item) && array_key_exists('label', $item)) {
+                    $label = $item['label'];
+                    if (is_string($label)) {
+                        return $label;
+                    }
+                    if (is_numeric($label) || is_bool($label)) {
+                        return (string) $label;
+                    }
+
+                    return '';
+                }
+
+                if (is_string($item)) {
+                    return $item;
+                }
+
+                if (is_numeric($item) || is_bool($item)) {
+                    return (string) $item;
+                }
+
+                return '';
+            };
+            $cmp = static function ($a, $b) use ($getLabel): int {
+                return strcmp($getLabel($a), $getLabel($b));
+            };
+
             uasort($choice, $cmp);
             $choices[$key] = $choice;
         }
@@ -307,13 +344,14 @@ class CompanySegmentModel extends FormModel
         $dependents = [];
         $accessor   = PropertyAccess::createPropertyAccessor();
         foreach ($entities as $entity) {
+            assert($entity instanceof CompanySegment || $entity instanceof LeadList);
             $retrFilters = $entity->getFilters();
             foreach ($retrFilters as $eachFilter) {
-                if (!array_key_exists('properties', $eachFilter) || !array_key_exists('filter', $eachFilter['properties'])) {
+                if (!is_array($eachFilter) || !array_key_exists('properties', $eachFilter) || !is_array($eachFilter['properties']) || !array_key_exists('filter', $eachFilter['properties'])) {
                     continue;
                 }
                 $filter = $eachFilter['properties']['filter'];
-                if ($filter && self::PROPERTIES_FIELD === $eachFilter['type'] && in_array($segmentId, $filter, true)) {
+                if (is_array($filter) && self::PROPERTIES_FIELD === $eachFilter['type'] && in_array($segmentId, $filter, true)) {
                     $value = $accessor->getValue($entity, $returnProperty);
                     if (('id' !== $returnProperty && !is_string($value)) || ('id' === $returnProperty && !is_numeric($value))) {
                         continue; // Return property does not exist.
@@ -359,9 +397,16 @@ class CompanySegmentModel extends FormModel
         $filterRegistered          = [];
 
         foreach ($entities as $entity) {
+            assert($entity instanceof CompanySegment);
             $retrFilters = $entity->getFilters();
             foreach ($retrFilters as $eachFilter) {
-                if (self::PROPERTIES_FIELD !== $eachFilter['type']) {
+                if (
+                    !is_array($eachFilter)
+                    || !array_key_exists('type', $eachFilter)
+                    || self::PROPERTIES_FIELD !== $eachFilter['type']
+                    || !is_array($eachFilter['properties'])
+                    || !array_key_exists('filter', $eachFilter['properties'])
+                ) {
                     continue;
                 }
                 /** @var array<int> $filterValue */
@@ -443,10 +488,16 @@ class CompanySegmentModel extends FormModel
         $filterRegistered    = [];
 
         foreach ($entities as $entity) {
-            assert($entity instanceof \Mautic\LeadBundle\Entity\LeadList);
+            assert($entity instanceof LeadList);
             $retrFilters = $entity->getFilters();
             foreach ($retrFilters as $eachFilter) {
-                if (self::PROPERTIES_FIELD !== $eachFilter['type']) {
+                if (
+                    !is_array($eachFilter)
+                    || !array_key_exists('type', $eachFilter)
+                    || self::PROPERTIES_FIELD !== $eachFilter['type']
+                    || !is_array($eachFilter['properties'])
+                    || !array_key_exists('filter', $eachFilter['properties'])
+                ) {
                     continue;
                 }
                 /** @var array<int> $filterValue */
@@ -522,11 +573,19 @@ class CompanySegmentModel extends FormModel
         $filterRegistered          = [];
 
         foreach ($entities as $entity) {
+            assert($entity instanceof CompanySegment || $entity instanceof LeadList);
             $retrFilters = $entity->getFilters();
             foreach ($retrFilters as $eachFilter) {
-                if (self::PROPERTIES_FIELD !== $eachFilter['type']) {
+                if (
+                    !is_array($eachFilter)
+                    || !array_key_exists('type', $eachFilter)
+                    || self::PROPERTIES_FIELD !== $eachFilter['type']
+                    || !is_array($eachFilter['properties'])
+                    || !array_key_exists('filter', $eachFilter['properties'])
+                ) {
                     continue;
                 }
+
                 if (!array_key_exists('properties', $eachFilter) || !array_key_exists('filter', $eachFilter['properties'])) {
                     continue;
                 }
@@ -622,6 +681,7 @@ class CompanySegmentModel extends FormModel
 
         $companyAddSegment = [];
         foreach ($companySegments as $companySegment) {
+            assert($companySegment instanceof CompanySegment);
             if ($companySegment->hasCompany($company)) {
                 continue;
             }
@@ -645,6 +705,7 @@ class CompanySegmentModel extends FormModel
                 }
             } else {
                 $companiesSegments = new CompaniesSegments();
+
                 $companiesSegments->setCompanySegment($companySegment);
                 $companiesSegments->setCompany($company);
                 $companiesSegments->setManuallyAdded($manuallyAdded);
@@ -654,7 +715,9 @@ class CompanySegmentModel extends FormModel
             $companySegment->addCompaniesSegment($companiesSegments);
 
             $companyAddSegment[] = $companiesSegments;
-            $this->segmentCountCacheHelper->incrementSegmentCompanyCount($companySegment->getId());
+            if (is_int($companySegment->getId())) {
+                $this->segmentCountCacheHelper->incrementSegmentCompanyCount($companySegment->getId());
+            }
         }
 
         foreach ($companyAddSegment as $companiesSegment) {
@@ -700,6 +763,7 @@ class CompanySegmentModel extends FormModel
         $companySaveSegment   = [];
         $companyDeleteSegment = [];
         foreach ($companySegments as $companySegment) {
+            assert($companySegment instanceof CompanySegment);
             $companiesSegments = $this->getCompaniesSegmentsRepository()->findOneBy(
                 [
                     'company'        => $company,
@@ -720,8 +784,9 @@ class CompanySegmentModel extends FormModel
 
                 $companySaveSegment[$companySegment->getId()] = $companiesSegments;
             }
-
-            $this->segmentCountCacheHelper->decrementSegmentCompanyCount($companySegment->getId());
+            if (is_int($companySegment->getId())) {
+                $this->segmentCountCacheHelper->decrementSegmentCompanyCount($companySegment->getId());
+            }
         }
 
         if ([] !== $companySaveSegment) {
@@ -836,7 +901,7 @@ class CompanySegmentModel extends FormModel
                     $processedCompanies[] = $company;
 
                     ++$companiesProcessed;
-                    if (null !== $output && $companiesProcessed < $maxCount) {
+                    if (null !== $output && $companiesProcessed < $maxCount && isset($progress)) {
                         $progress->setProgress($companiesProcessed);
                     }
 
