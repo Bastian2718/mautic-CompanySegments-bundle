@@ -157,7 +157,7 @@ jobs:
       matrix:
         commands: ['PHPStan', 'CS Fixer', 'Rector', 'Twig Lint']
         php-versions: ['8.1']
-        mautic-versions: ['5.x']
+        mautic-versions: ['6.x']
 
     name: ${{ matrix.commands }} - ${{ matrix.php-versions }} - ${{ matrix.mautic-versions }}
 
