@@ -160,8 +160,8 @@ jobs:
       fail-fast: false
       matrix:
         commands: ['PHPStan', 'CS Fixer', 'Rector', 'Twig Lint']
-        php-versions: ['8.1']
-        mautic-versions: ['6.x']
+        php-versions: ['8.1','8.2','8.3']
+        mautic-versions: ['6.x','6.0']
 
     name: ${{ matrix.commands }} - ${{ matrix.php-versions }} - ${{ matrix.mautic-versions }}
 
