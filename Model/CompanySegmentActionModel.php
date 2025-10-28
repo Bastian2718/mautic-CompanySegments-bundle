@@ -18,8 +18,8 @@ class CompanySegmentActionModel
     }
 
     /**
-     * @param array<mixed,mixed> $companyIds
-     * @param array<mixed,mixed> $segmentIds
+     * @param array<int> $companyIds
+     * @param array<int> $segmentIds
      */
     public function addCompanies(array $companyIds, array $segmentIds, bool $manuallyAdded = true): void
     {
@@ -35,8 +35,8 @@ class CompanySegmentActionModel
     }
 
     /**
-     * @param array<mixed,mixed> $companyIds
-     * @param array<mixed,mixed> $segmentIds
+     * @param array<int> $companyIds
+     * @param array<int> $segmentIds
      */
     public function removeCompanies(array $companyIds, array $segmentIds, bool $manuallyRemoved = true): void
     {

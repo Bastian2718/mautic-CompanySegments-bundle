@@ -10,7 +10,7 @@ namespace MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Event;
 class CompanySegmentPostSave extends CompanySegmentPreSavedEvent
 {
     /**
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     public function getChanges(): array
     {

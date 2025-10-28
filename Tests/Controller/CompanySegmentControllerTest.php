@@ -76,8 +76,18 @@ class CompanySegmentControllerTest extends MauticMysqlTestCase
             'company_segments' => [],
         ]);
         $values = $form->getPhpValues();
+        self::assertIsArray($values);
+        self::assertArrayHasKey('company_segments', $values);
+        self::assertIsArray($values['company_segments']);
+        if (!array_key_exists('buttons', $values['company_segments'])) {
+            $values['company_segments']['buttons'] = [];
+        }
+        self::assertArrayHasKey('buttons', $values['company_segments']);
+        self::assertIsArray($values['company_segments']['buttons']);
+        if (!array_key_exists('cancel', $values['company_segments']['buttons'])) {
+            $values['company_segments']['buttons']['cancel'] = '';
+        }
 
-        $values['company_segments']['buttons']['cancel'] = '';
         $this->client->request($form->getMethod(), $form->getUri(), $values);
         self::assertResponseIsSuccessful();
 

@@ -55,9 +55,12 @@ trait NewUserTrait
         $user->setUsername($userName);
         $user->setEmail($userName.'@mautic.com');
         $encoderFactory = self::getContainer()->get('security.password_hasher_factory');
-        $hasher         = $encoderFactory->getPasswordHasher($user);
-        \assert($hasher instanceof PasswordHasherInterface);
-        $user->setPassword($hasher->hash($password));
+        if (method_exists($encoderFactory, 'getPasswordHasher')) {
+            $hasher         = $encoderFactory->getPasswordHasher($user);
+            \assert($hasher instanceof PasswordHasherInterface);
+            $user->setPassword($hasher->hash($password));
+        }
+
         $user->setRole($role);
         $this->em->persist($user);
         $this->em->flush();

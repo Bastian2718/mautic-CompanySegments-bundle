@@ -43,6 +43,7 @@ class AjaxControllerTest extends MauticMysqlTestCase
 
         self::assertIsArray($json);
         self::assertArrayHasKey('viewParameters', $json);
+        self::assertIsArray($json['viewParameters']);
         self::assertArrayHasKey('form', $json['viewParameters']);
         self::assertIsString($json['viewParameters']['form']);
         self::assertStringContainsString('company_segments_filters_1_properties_filter', $json['viewParameters']['form']);

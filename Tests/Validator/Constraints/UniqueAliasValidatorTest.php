@@ -17,6 +17,9 @@ use Symfony\Component\Validator\Exception\UnexpectedTypeException;
 use Symfony\Component\Validator\Exception\UnexpectedValueException;
 use Symfony\Component\Validator\Test\ConstraintValidatorTestCase;
 
+/**
+ * @extends \Symfony\Component\Validator\Test\ConstraintValidatorTestCase<\MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Validator\Constraints\UniqueAliasValidator>
+ */
 class UniqueAliasValidatorTest extends ConstraintValidatorTestCase
 {
     /**

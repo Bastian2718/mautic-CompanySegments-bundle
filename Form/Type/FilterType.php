@@ -95,7 +95,14 @@ class FilterType extends AbstractType
             $filterPropertiesType = $form->get('properties');
             $filterPropertiesType->setData($data['properties'] ?? []);
 
-            if (null !== $fieldAlias && '' !== $fieldAlias && null !== $operator && '' !== $operator) {
+            if (
+                null !== $fieldAlias
+                && '' !== $fieldAlias
+                && null !== $operator
+                && '' !== $operator
+                && is_string($fieldObject)
+                && is_string($operator)
+            ) {
                 $this->formAdjustmentsProvider->adjustForm(
                     $filterPropertiesType,
                     $fieldAlias,

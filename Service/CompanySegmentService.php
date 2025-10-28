@@ -189,8 +189,12 @@ class CompanySegmentService
      */
     private function getNewCompanySegmentCompaniesQueryBuilder(CompanySegment $segment, array $batchLimiters, bool $addNewContactsRestrictions = true): QueryBuilder
     {
-        $queryBuilder        = $this->getNewSegmentContactsQuery($segment, $batchLimiters, $addNewContactsRestrictions);
-        $companiesTableAlias = $queryBuilder->getTableAlias(MAUTIC_TABLE_PREFIX.'companies');
+        $queryBuilder         = $this->getNewSegmentContactsQuery($segment, $batchLimiters, $addNewContactsRestrictions);
+        $preTableName         = '';
+        if (is_string(MAUTIC_TABLE_PREFIX)) {
+            $preTableName = MAUTIC_TABLE_PREFIX;
+        }
+        $companiesTableAlias = $queryBuilder->getTableAlias($preTableName.'companies');
         \assert(is_string($companiesTableAlias));
 
         // Prepend the DISTINCT to the beginning of the select array

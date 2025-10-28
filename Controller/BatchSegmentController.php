@@ -52,11 +52,16 @@ class BatchSegmentController extends AbstractFormController
         } else {
             $params = $requestParameters['company_batch'];
         }
-
-        $companyIds = '' === $params['ids'] ? [] : json_decode($params['ids'], true, 512, JSON_THROW_ON_ERROR);
+        $companyIds = [];
+        if (is_string($params['ids']) && '' !== $params['ids']) {
+            /** @var array<int> $companyIds */
+            $companyIds = json_decode($params['ids'], true, 512, JSON_THROW_ON_ERROR);
+        }
 
         if ([] !== $companyIds && is_array($companyIds)) {
+            /** @var array<int> $segmentsToAdd */
             $segmentsToAdd    = $params['add'] ?? [];
+            /** @var array<int> $segmentsToRemove */
             $segmentsToRemove = $params['remove'] ?? [];
 
             if (is_array($segmentsToAdd) && [] !== $segmentsToAdd) {

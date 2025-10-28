@@ -420,8 +420,25 @@ class CompanySegmentQueryBuilder
 
         foreach ($segmentFilters as $segmentFilter) {
             if (isset($segmentFilter['field']) && CompanySegmentModel::PROPERTIES_FIELD === $segmentFilter['field']) {
-                $bcFilter     = $segmentFilter['filter'] ?? [];
-                $filterEdges  = $segmentFilter['properties']['filter'] ?? $bcFilter;
+                $filterEdges = [];
+                if (
+                    is_array($segmentFilter)
+                    && array_key_exists('filter', $segmentFilter)
+                    && is_array($segmentFilter['filter'])
+                ) {
+                    $filterEdges     = $segmentFilter['filter'];
+                }
+
+                if (
+                    is_array($segmentFilter)
+                    && array_key_exists('properties', $segmentFilter)
+                    && is_array($segmentFilter['properties'])
+                    && array_key_exists('filter', $segmentFilter['properties'])
+                    && is_array($segmentFilter['properties']['filter'])
+                ) {
+                    $filterEdges  = $segmentFilter['properties']['filter'];
+                }
+
                 $segmentEdges = array_merge($segmentEdges, $filterEdges);
             }
         }

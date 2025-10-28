@@ -60,8 +60,9 @@ class CampaignSubscriber implements EventSubscriberInterface
         if (!$this->config->isPublished() || !$event->checkContext(self::MANAGE_COMPANY_SEGMENT_ACTION)) {
             return $event->setResult(false);
         }
-
+        /** @var array<int> */
         $addTo      = $event->getConfig()['addToLists'];
+        /** @var array<int> */
         $removeFrom = $event->getConfig()['removeFromLists'];
 
         $lead              = $event->getLead();
@@ -72,12 +73,24 @@ class CampaignSubscriber implements EventSubscriberInterface
             return $event->setResult(true);
         }
 
-        if ([] !== $addTo && is_array($primaryCompany) && array_key_exists('id', $primaryCompany) && '' !== $primaryCompany['id'] && null !== $primaryCompany['id']) {
-            $somethingHappened = $this->addRemoveCompanyToSegment($addTo, (int) $primaryCompany['id'], true);
+        $rawId = null;
+        if (is_array($primaryCompany) && array_key_exists('id', $primaryCompany)) {
+            $rawId = $primaryCompany['id'];
         }
 
-        if ([] !== $removeFrom && is_array($primaryCompany) && array_key_exists('id', $primaryCompany) && '' !== $primaryCompany['id'] && null !== $primaryCompany['id']) {
-            $somethingHappened = $this->addRemoveCompanyToSegment($removeFrom, (int) $primaryCompany['id'], false);
+        $primaryCompanyId = null;
+        if (is_int($rawId)) {
+            $primaryCompanyId = $rawId;
+        } elseif (is_string($rawId) && ctype_digit($rawId)) {
+            $primaryCompanyId = (int) $rawId;
+        }
+
+        if ([] !== $addTo && null !== $primaryCompanyId) {
+            $somethingHappened = $this->addRemoveCompanyToSegment($addTo, $primaryCompanyId, true);
+        }
+
+        if ([] !== $removeFrom && null !== $primaryCompanyId) {
+            $somethingHappened = $this->addRemoveCompanyToSegment($removeFrom, $primaryCompanyId, false);
         }
 
         return $event->setResult($somethingHappened);
