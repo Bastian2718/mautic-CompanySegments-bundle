@@ -251,7 +251,7 @@ jobs:
       matrix:
         commands: [ 'PHPStan', 'CS Fixer', 'Rector' ]
         php-versions: [ '8.3' ]
-        mautic-versions: [ '6.x', '6.0' ]
+        mautic-versions: [ '6.x']
 
     name: ${{ matrix.commands }} - ${{ matrix.php-versions }} - ${{ matrix.mautic-versions }}
 
