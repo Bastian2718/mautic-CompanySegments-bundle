@@ -71,7 +71,7 @@ class CompanySegmentController extends AbstractStandardFormController
 
         \assert(is_array($permissions));
 
-        if (!$permissions['lead:leads:viewother'] && !$permissions['lead:leads:viewown']) {
+        if (!(bool) ($permissions['lead:leads:viewother'] ?? false) && !(bool) ($permissions['lead:leads:viewown'] ?? false)) {
             return $this->accessDenied();
         }
 
@@ -80,6 +80,7 @@ class CompanySegmentController extends AbstractStandardFormController
         // set limits
         $session = $request->getSession();
         $limit   = $session->get('mautic.'.$this->getSessionBase().'.limit', $this->coreParametersHelper->get('default_pagelimit'));
+        /** @phpstan-ignore-next-line */
         $start   = (1 === $page) ? 0 : (($page - 1) * $limit);
         if ($start < 0) {
             $start = 0;
@@ -105,7 +106,15 @@ class CompanySegmentController extends AbstractStandardFormController
         }
 
         /** @var \Doctrine\ORM\Tools\Pagination\Paginator<CompanySegment> $items */
+        /** @phpstan-ignore-next-line */
         [$count, $items] = $this->getIndexItems($start, $limit, $filter, $orderBy, $orderByDir);
+
+        $count = !is_numeric($count) ? 0 : (int) $count;
+        $limit = !is_numeric($limit) ? 0 : (int) $limit;
+        if ($limit <= 0) {
+            $limit = 1;
+        }
+
         if (0 !== $count && $count < ($start + 1)) {
             // the number of entities are now less than the current page so redirect to the last page
             if (1 === $count) {
@@ -505,7 +514,10 @@ class CompanySegmentController extends AbstractStandardFormController
             if (!is_array($ids)) {
                 throw new BadRequestHttpException('Invalid ids parameter.');
             }
-
+            $ids = array_values(array_map('intval', array_filter(
+                $ids,
+                static fn ($v): bool => is_int($v) || (is_string($v) && ctype_digit($v))
+            )));
             $canNotBeDeletedCompanySegment = $model->canNotBeDeletedByCompanySegments($ids);
 
             if (0 !== count($canNotBeDeletedCompanySegment)) {

@@ -237,6 +237,8 @@ class CompanySegmentServiceTest extends MauticMysqlTestCase
         self::assertCount(1, $existingFilters, 'Self-check.');
         self::assertIsArray($existingFilters[0], 'Self-check.');
         self::assertSame(CompanySegmentModel::PROPERTIES_FIELD, $existingFilters[0]['field'], 'Self-check.');
+        self::assertIsArray($existingFilters[0]['properties']);
+        self::assertArrayHasKey('filter', $existingFilters[0]['properties']);
         self::assertIsArray($existingFilters[0]['properties']['filter']);
         $existingFilters[0]['properties']['filter'][0] = ''.$companySegmentWithFilter->getId();
         $companySegment->setFilters($existingFilters);

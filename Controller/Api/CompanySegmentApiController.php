@@ -155,11 +155,13 @@ class CompanySegmentApiController extends CommonApiController
         foreach ($entities as $key => $entity) {
             if (!($entity instanceof CompanySegment) || null === $entity->getId() || 0 === $entity->getId()) {
                 $entityError = $entity instanceof CompanySegment ? $entity : null;
+                /** @var array<int, array<int|string>> $errors */
                 $this->setBatchError($key, 'mautic.core.error.notfound', Response::HTTP_NOT_FOUND, $errors, $entities, $entityError);
                 continue;
             }
 
             if (false === $this->checkEntityAccess($entity, 'delete')) {
+                /** @var array<int, array<int|string>> $errors */
                 $this->setBatchError($key, 'mautic.core.error.accessdenied', Response::HTTP_FORBIDDEN, $errors, $entities, $entity);
                 continue;
             }

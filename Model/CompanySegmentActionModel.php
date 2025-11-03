@@ -74,6 +74,7 @@ class CompanySegmentActionModel
             throw new \RuntimeException('The mautic changed it\'s behaviour.');
         }
 
+        /** @var array<Company> $result */
         return $result;
     }
 

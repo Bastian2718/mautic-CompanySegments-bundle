@@ -46,13 +46,28 @@ class FilterType extends AbstractType
         );
 
         $formModifier = function (FormEvent $event) use ($fieldChoices): void {
-            $data        = (array) $event->getData();
-            $form        = $event->getForm();
-            $fieldAlias  = $data['field'] ?? null;
-            \assert(is_string($fieldAlias) || null === $fieldAlias);
-            $fieldObject = $data['object'] ?? 'behaviors';
+            /** @var array<string, mixed> $data */
+            $data           = (array) $event->getData();
+            $form           = $event->getForm();
+            $fieldAliasRaw  = $data['field'] ?? null;
+            $fieldObjectRaw = $data['object'] ?? 'behaviors';
+            $fieldAlias     = null;
+            if (is_string($fieldAliasRaw) || is_int($fieldAliasRaw) || is_float($fieldAliasRaw)) {
+                $fieldAlias = (string) $fieldAliasRaw;
+            }
+            $fieldObject = 'behaviors';
+            if (is_string($fieldObjectRaw) || is_int($fieldObjectRaw) || is_float($fieldObjectRaw)) {
+                $fieldObject = (string) $fieldObjectRaw;
+            }
             // Looking for behaviors for BC reasons as some filters were moved from 'lead' to 'behaviors'.
-            $field       = $fieldChoices[$fieldObject][$fieldAlias] ?? $fieldChoices['behaviors'][$fieldAlias] ?? null;
+            $field = null;
+            if (null !== $fieldAlias) {
+                if (isset($fieldChoices[$fieldObject][$fieldAlias])) {
+                    $field = $fieldChoices[$fieldObject][$fieldAlias];
+                } elseif (isset($fieldChoices['behaviors'][$fieldAlias])) {
+                    $field = $fieldChoices['behaviors'][$fieldAlias];
+                }
+            }
 
             $operators = [];
             if (is_array($field) && is_array($field['operators'])) {
@@ -61,7 +76,7 @@ class FilterType extends AbstractType
 
             $operator = $data['operator'] ?? null;
 
-            if ([] !== $operators && !$operator) {
+            if ([] !== $operators && (null === $operator || '' === $operator)) {
                 $operator = array_key_first($operators);
             }
 
@@ -100,7 +115,6 @@ class FilterType extends AbstractType
                 && '' !== $fieldAlias
                 && null !== $operator
                 && '' !== $operator
-                && is_string($fieldObject)
                 && is_string($operator)
             ) {
                 $this->formAdjustmentsProvider->adjustForm(
@@ -132,7 +146,10 @@ class FilterType extends AbstractType
 
     public function buildView(FormView $view, FormInterface $form, array $options): void
     {
-        $view->vars['fields'] = $this->companySegmentModel->getChoiceFields();
+        /** @var array<string, mixed> $vars */
+        $vars           = $view->vars;
+        $vars['fields'] = $this->companySegmentModel->getChoiceFields();
+        $view->vars     = $vars;
     }
 
     /**

@@ -23,6 +23,7 @@ class CompanySegment extends FormEntity
     public const LINKED_ENTITY = 'company';
     public const DEFAULT_ALIAS = 'cs';
 
+    /** @phpstan-ignore-next-line */
     private ?int $id = null;
 
     private ?string $name = null;

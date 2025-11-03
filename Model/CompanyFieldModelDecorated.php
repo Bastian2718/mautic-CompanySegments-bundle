@@ -76,6 +76,7 @@ class CompanyFieldModelDecorated extends FieldModel
             }
         }
 
+        /** @var array<array<string, mixed>>  $rows */
         return $rows;
     }
 }

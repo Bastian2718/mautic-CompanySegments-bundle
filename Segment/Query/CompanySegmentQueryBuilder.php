@@ -438,7 +438,7 @@ class CompanySegmentQueryBuilder
                 ) {
                     $filterEdges  = $segmentFilter['properties']['filter'];
                 }
-
+                /** @var array<int, int|string> $segmentEdges */
                 $segmentEdges = array_merge($segmentEdges, $filterEdges);
             }
         }
