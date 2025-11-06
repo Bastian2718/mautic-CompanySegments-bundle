@@ -33,7 +33,7 @@ jobs:
           - mautic-versions: 6.x
             php-versions: 8.3
         exclude:
-          - mautic-versions: 5.x # 5.2 will not support php-8.0
+          - mautic-versions: 6.x # 5.2 will not support php-8.0
             php-versions: 8.0
     services:
       database:
