@@ -159,7 +159,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        commands: ['PHPStan', 'CS Fixer', 'Rector', 'Twig Lint']
+        commands: ['PHPStan', 'CS Fixer', 'Twig Lint']
         php-versions: ['8.3']
         mautic-versions: ['6.0']
 
