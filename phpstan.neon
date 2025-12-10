@@ -28,13 +28,16 @@ parameters:
           path: rector.php
           reportUnmatched: false
         - message: '#has typehint with deprecated class Mautic\\CoreBundle\\Factory\\MauticFactory#'
+          reportUnmatched: false
           count: 1
           path: Controller/BatchSegmentController.php
         - message: '#has typehint with deprecated class Mautic\\CoreBundle\\Factory\\MauticFactory#'
+          reportUnmatched: false
           count: 1
           path: Controller/Api/CompanySegmentApiController.php
         - message: '#has typehint with deprecated class Mautic\\CoreBundle\\Factory\\MauticFactory#'
           count: 1
+          reportUnmatched: false
           path: EventListener/UpdatePluginSubscriber.php
         - message: '#^Dead catch - Error is never thrown in the try block.$#'
           count: 1
@@ -62,3 +65,14 @@ parameters:
           count: 1
           path: Model/CompanySegmentModel.php
           reportUnmatched: false
+        - message: "#Call to method .* of deprecated class Mautic\\\\CampaignBundle\\\\Event\\\\CampaignExecutionEvent#"
+          reportUnmatched: false
+        - message: "#part of static method Doctrine\\\\DBAL#"
+          reportUnmatched: false
+        - message: '#has typehint with deprecated class Mautic#'
+          reportUnmatched: false
+        - message: '#should return array\<string, mixed\>\|Symfony\\Component\\HttpFoundation\\Response#'
+        - message: '#of method Doctrine\\DBAL\\Query\\QueryBuilder#'
+        - message: '#of method Doctrine\\DBAL\\Query\\Expression\\ExpressionBuilder::in#'
+        - message: '#should be contravariant with parameter \$id#'
+          path: Model/CompanySegmentModel.php

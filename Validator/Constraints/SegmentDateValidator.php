@@ -18,7 +18,7 @@ class SegmentDateValidator extends ConstraintValidator
     }
 
     /**
-     * @phpstan-param array<mixed>|mixed $filters
+     * @phpstan-param array<int, array<string, mixed>>|mixed $filters
      */
     public function validate($filters, Constraint $constraint): void
     {
@@ -30,7 +30,7 @@ class SegmentDateValidator extends ConstraintValidator
             if (!is_array($filter)) {
                 continue;
             }
-
+            /** @var array<string, mixed> $filter */
             if (isset($filter['type']) && in_array($filter['type'], ['date', 'datetime'], true)) {
                 $segmentFilter  = $this->contactSegmentFilterFactory->factorSegmentFilter($filter);
                 $parameterValue = $segmentFilter->getParameterValue();

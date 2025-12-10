@@ -5,12 +5,14 @@ namespace MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\Functional\Control
 use Mautic\CoreBundle\Test\MauticMysqlTestCase;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompanySegment;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\EnablePluginTrait;
+use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\HelperCompanySegmentTestTrait;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class CompanySegmentApiControllerTest extends MauticMysqlTestCase
 {
     use EnablePluginTrait;
+    use HelperCompanySegmentTestTrait;
 
     protected function setUp(): void
     {
@@ -19,6 +21,7 @@ class CompanySegmentApiControllerTest extends MauticMysqlTestCase
         $this->enablePlugin(true);
         $this->useCleanupRollback = false;
         $this->setUpSymfony($this->configParams);
+        $this->loginAdminUser();
     }
 
     public function testGetCompanySegments(): void
@@ -44,6 +47,8 @@ class CompanySegmentApiControllerTest extends MauticMysqlTestCase
         self::assertSame(Response::HTTP_OK, $response->getStatusCode());
         $data = json_decode($response->getContent(), true);
         self::assertIsArray($data);
+        self::assertIsArray($data['companysegment']);
+        self::assertArrayHasKey('name', $data['companysegment']);
         self::assertSame('Segment test', $data['companysegment']['name']);
     }
 
@@ -81,6 +86,8 @@ class CompanySegmentApiControllerTest extends MauticMysqlTestCase
         $data = json_decode($this->client->getResponse()->getContent(), true);
         self::assertIsArray($data);
         self::assertIsArray($data['companysegment']);
+        self::assertArrayHasKey('name', $data['companysegment']);
+        self::assertIsString($data['companysegment']['name']);
         self::assertSame('Segment test edited', $data['companysegment']['name']);
         $companySegment = $this->em->getRepository(CompanySegment::class)->find($data['companysegment']['id']);
         self::assertNotNull($companySegment);
@@ -119,6 +126,9 @@ class CompanySegmentApiControllerTest extends MauticMysqlTestCase
         self::assertIsArray($data);
         self::assertIsArray($data['companysegments']);
         self::assertCount(2, $data['companysegments']);
+        self::assertIsArray($data['statusCodes']);
+        self::assertArrayHasKey(0, $data['statusCodes']);
+        self::assertArrayHasKey(1, $data['statusCodes']);
         self::assertSame(Response::HTTP_CREATED, $data['statusCodes'][0]);
         self::assertSame(Response::HTTP_CREATED, $data['statusCodes'][1]);
     }
@@ -143,6 +153,9 @@ class CompanySegmentApiControllerTest extends MauticMysqlTestCase
         self::assertIsArray($data);
         self::assertIsArray($data['companysegments']);
         self::assertCount(1, $data['companysegments']);
+        self::assertIsArray($data['statusCodes']);
+        self::assertArrayHasKey(0, $data['statusCodes']);
+        self::assertArrayHasKey(1, $data['statusCodes']);
         self::assertSame(Response::HTTP_CREATED, $data['statusCodes'][0]);
         self::assertSame(Response::HTTP_BAD_REQUEST, $data['statusCodes'][1]);
         self::assertIsArray($data['errors']);
@@ -177,6 +190,10 @@ class CompanySegmentApiControllerTest extends MauticMysqlTestCase
         self::assertIsArray($data);
         self::assertIsArray($data['companysegments']);
         self::assertCount(1, $data['companysegments']);
+        self::assertIsArray($data['statusCodes']);
+        self::assertArrayHasKey(0, $data['statusCodes']);
+        self::assertArrayHasKey(1, $data['statusCodes']);
+        self::assertArrayHasKey(2, $data['statusCodes']);
         self::assertSame(Response::HTTP_OK, $data['statusCodes'][0]);
         self::assertSame(Response::HTTP_NOT_FOUND, $data['statusCodes'][1]);
         self::assertSame(Response::HTTP_NOT_FOUND, $data['statusCodes'][2]);

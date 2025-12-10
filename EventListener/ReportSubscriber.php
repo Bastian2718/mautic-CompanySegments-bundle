@@ -92,14 +92,14 @@ class ReportSubscriber implements EventSubscriberInterface
     }
 
     /**
-     * @return array<string, string>
+     * @return array<int|string, string>
      */
     public function getFilterSegments(): array
     {
         $segments    = $this->companySegmentRepository->getSegmentObjectsViaListOfIDs();
+        /** @var array<string, string> $segmentList */
         $segmentList = [];
         foreach ($segments as $segment) {
-            /** @var string $id */
             $id               = (string) $segment->getId();
             $segmentList[$id] = (string) $segment->getName();
         }
@@ -118,18 +118,32 @@ class ReportSubscriber implements EventSubscriberInterface
 
         $qb       = $event->getQueryBuilder();
         $filters  = $event->getReport()->getFilters();
+        /** @var array<string, array<string, string>> $options */
         $options  = $event->getOptions()['columns'];
+        /** @var array<int, CompositeExpression|string> $orGroups */
         $orGroups = [];
+        /** @var array<int, CompositeExpression|string> $andGroup */
         $andGroup = [];
 
         $qb
-            ->from(MAUTIC_TABLE_PREFIX.self::COMPANY_TABLE, self::COMPANIES_PREFIX);
+            ->from($this->getBaseTableName().self::COMPANY_TABLE, self::COMPANIES_PREFIX);
 
         $expr     = $qb->expr();
 
         if (count($filters) > 0) {
             foreach ($filters as $i => $filter) {
+                /** @var array<string,mixed> $filter */
+                if (!is_array($filter)) {
+                    continue;
+                }
+                if (!array_key_exists('expr', $filter) && !array_key_exists('condition', $filter) && !array_key_exists('column', $filter)) {
+                    continue;
+                }
+                if (!is_string($filter['column'])) {
+                    continue;
+                }
                 $exprFunction = $filter['expr'] ?? $filter['condition'];
+
                 $paramName    = sprintf('i%dc%s', $i, InputHelper::alphanum($filter['column']));
 
                 if (array_key_exists('glue', $filter) && 'or' === $filter['glue']) {
@@ -172,7 +186,7 @@ class ReportSubscriber implements EventSubscriberInterface
                         $andGroup[] = $expression;
                         break;
                     default:
-                        if ('' == trim($filter['value'])) {
+                        if (!is_string($filter['value']) || '' === trim($filter['value'])) {
                             // Ignore empty
                             break;
                         }
@@ -249,7 +263,7 @@ class ReportSubscriber implements EventSubscriberInterface
     }
 
     /**
-     * @param array<string, string|null> $filter
+     * @param array<string, mixed> $filter
      */
     public function getCompanySegmentCondition(array $filter): ?string
     {
@@ -263,7 +277,7 @@ class ReportSubscriber implements EventSubscriberInterface
     }
 
     /**
-     * @param array<string, string|null> $filter
+     * @param array<string, mixed> $filter
      */
     private function checkIfCompanySegmentFilter(array $filter): bool
     {
@@ -273,11 +287,11 @@ class ReportSubscriber implements EventSubscriberInterface
     private function prepareSegmentSubQuery(): QueryBuilder
     {
         return $this->db->createQueryBuilder()->select('DISTINCT '.self::COMPANY_SEGMENTS_XREF_PREFIX.'.company_id')
-            ->from(MAUTIC_TABLE_PREFIX.self::COMPANY_SEGMENTS_XREF_TABLE, self::COMPANY_SEGMENTS_XREF_PREFIX);
+            ->from($this->getBaseTableName().self::COMPANY_SEGMENTS_XREF_TABLE, self::COMPANY_SEGMENTS_XREF_PREFIX);
     }
 
     /**
-     * @param array<string, string|null> $filter
+     * @param array<string, mixed> $filter
      */
     private function finalizeSubQuery(QueryBuilder $segmentSubQuery, array $filter): string
     {
@@ -304,8 +318,20 @@ class ReportSubscriber implements EventSubscriberInterface
      */
     private function doesColumnSupportEmptyValue(array $filter, array $filterDefinitions): bool
     {
+        if (!array_key_exists('column', $filter) || !is_string($filter['column'])) {
+            return false;
+        }
         $type = $filterDefinitions[$filter['column']]['type'] ?? null;
 
         return !in_array($type, ['date', 'datetime'], true);
+    }
+
+    private function getBaseTableName(): string
+    {
+        if (is_string(MAUTIC_TABLE_PREFIX)) {
+            return MAUTIC_TABLE_PREFIX;
+        }
+
+        return '';
     }
 }

@@ -7,7 +7,6 @@ namespace MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Controller;
 use Doctrine\ORM\EntityNotFoundException;
 use Doctrine\Persistence\ManagerRegistry;
 use Mautic\CoreBundle\Controller\AbstractStandardFormController;
-use Mautic\CoreBundle\Factory\MauticFactory;
 use Mautic\CoreBundle\Factory\ModelFactory;
 use Mautic\CoreBundle\Helper\CoreParametersHelper;
 use Mautic\CoreBundle\Helper\UserHelper;
@@ -20,6 +19,7 @@ use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Model\CompanySegmentModel;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Stat\SegmentDependencies;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Form\FormFactoryInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
@@ -34,7 +34,6 @@ class CompanySegmentController extends AbstractStandardFormController
         FormFactoryInterface $formFactory,
         FormFieldHelper $fieldHelper,
         ManagerRegistry $managerRegistry,
-        MauticFactory $factory,
         ModelFactory $modelFactory,
         UserHelper $userHelper,
         CoreParametersHelper $coreParametersHelper,
@@ -45,7 +44,7 @@ class CompanySegmentController extends AbstractStandardFormController
         CorePermissions $security,
         private SegmentDependencies $segmentDependencies,
     ) {
-        parent::__construct($formFactory, $fieldHelper, $managerRegistry, $factory, $modelFactory, $userHelper, $coreParametersHelper, $dispatcher, $translator, $flashBag, $requestStack, $security);
+        parent::__construct($formFactory, $fieldHelper, $managerRegistry, $modelFactory, $userHelper, $coreParametersHelper, $dispatcher, $translator, $flashBag, $requestStack, $security);
     }
 
     /**
@@ -72,7 +71,7 @@ class CompanySegmentController extends AbstractStandardFormController
 
         \assert(is_array($permissions));
 
-        if (!$permissions['lead:leads:viewother'] && !$permissions['lead:leads:viewown']) {
+        if (!(bool) ($permissions['lead:leads:viewother'] ?? false) && !(bool) ($permissions['lead:leads:viewown'] ?? false)) {
             return $this->accessDenied();
         }
 
@@ -81,6 +80,7 @@ class CompanySegmentController extends AbstractStandardFormController
         // set limits
         $session = $request->getSession();
         $limit   = $session->get('mautic.'.$this->getSessionBase().'.limit', $this->coreParametersHelper->get('default_pagelimit'));
+        /** @phpstan-ignore-next-line */
         $start   = (1 === $page) ? 0 : (($page - 1) * $limit);
         if ($start < 0) {
             $start = 0;
@@ -106,7 +106,15 @@ class CompanySegmentController extends AbstractStandardFormController
         }
 
         /** @var \Doctrine\ORM\Tools\Pagination\Paginator<CompanySegment> $items */
+        /** @phpstan-ignore-next-line */
         [$count, $items] = $this->getIndexItems($start, $limit, $filter, $orderBy, $orderByDir);
+
+        $count = !is_numeric($count) ? 0 : (int) $count;
+        $limit = !is_numeric($limit) ? 0 : (int) $limit;
+        if ($limit <= 0) {
+            $limit = 1;
+        }
+
         if (0 !== $count && $count < ($start + 1)) {
             // the number of entities are now less than the current page so redirect to the last page
             if (1 === $count) {
@@ -185,7 +193,7 @@ class CompanySegmentController extends AbstractStandardFormController
     }
 
     /**
-     * @return Response|array<string, mixed>
+     * @return Response|JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse|array<string, mixed>
      */
     public function newAction(Request $request): Response|array
     {
@@ -506,7 +514,10 @@ class CompanySegmentController extends AbstractStandardFormController
             if (!is_array($ids)) {
                 throw new BadRequestHttpException('Invalid ids parameter.');
             }
-
+            $ids = array_values(array_map('intval', array_filter(
+                $ids,
+                static fn ($v): bool => is_int($v) || (is_string($v) && ctype_digit($v))
+            )));
             $canNotBeDeletedCompanySegment = $model->canNotBeDeletedByCompanySegments($ids);
 
             if (0 !== count($canNotBeDeletedCompanySegment)) {

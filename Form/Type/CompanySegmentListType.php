@@ -9,11 +9,6 @@ use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\OptionsResolver\Options;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
-/**
- * @phpstan-ignore-next-line
- *
- * @extends AbstractType<mixed>
- */
 class CompanySegmentListType extends AbstractType
 {
     public function __construct(

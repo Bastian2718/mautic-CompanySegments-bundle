@@ -10,7 +10,7 @@ namespace MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Event;
 class CompanySegmentPostDelete extends CompanySegmentEvent
 {
     /**
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     public function getChanges(): array
     {

@@ -21,10 +21,14 @@ class CompanyEventLogRepository extends CommonRepository
      */
     public function updateCompany($fromCompanyId, $toCompanyId): void
     {
-        $toCompanyId = (int) $toCompanyId;
-        $toCompanyId = (string) $toCompanyId;
-        $q           = $this->_em->getConnection()->createQueryBuilder();
-        $q->update(MAUTIC_TABLE_PREFIX.'company_event_log')
+        $toCompanyId  = (int) $toCompanyId;
+        $toCompanyId  = (string) $toCompanyId;
+        $q            = $this->_em->getConnection()->createQueryBuilder();
+        $preTableName = '';
+        if (is_string(MAUTIC_TABLE_PREFIX)) {
+            $preTableName = MAUTIC_TABLE_PREFIX;
+        }
+        $q->update($preTableName.'company_event_log')
             ->set('company_id', $toCompanyId)
             ->where('company_id = '.(int) $fromCompanyId)
             ->executeStatement();

@@ -139,7 +139,14 @@ class CompanySegmentType extends AbstractType
 
     public function buildView(FormView $view, FormInterface $form, array $options): void
     {
-        $view->vars['fields'] = $this->companySegmentModel->getChoiceFields();
+        if (!is_array($view->vars)) {
+            $view->vars = [];
+        }
+
+        /** @var array<string, mixed> $vars */
+        $vars           = $view->vars;
+        $vars['fields'] = $this->companySegmentModel->getChoiceFields();
+        $view->vars     = $vars;
     }
 
     public function getBlockPrefix(): string
