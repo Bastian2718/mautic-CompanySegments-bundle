@@ -22,7 +22,7 @@ class CompaniesPlaceholderLeads
         $builder = new ClassMetadataBuilder($metadata);
 
         $builder->setTable(self::TABLE_NAME)
-            ->setCustomRepositoryClass(CompaniesSegmentsRepository::class);
+            ->setCustomRepositoryClass(CompaniesPlaceholderLeadsRepository::class);
 
         $builder->createManyToOne('company', Company::class)
             ->isPrimaryKey()
