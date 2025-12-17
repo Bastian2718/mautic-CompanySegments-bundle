@@ -7,6 +7,7 @@ use Mautic\LeadBundle\Entity\Company;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Event\CompanyEvent;
 use Mautic\LeadBundle\LeadEvents;
+use Mautic\LeadBundle\Model\LeadModel;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompaniesPlaceholderLeads;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompaniesPlaceholderLeadsRepository;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -15,7 +16,8 @@ class CompanySubscriber implements EventSubscriberInterface
 {
     public function __construct(
         private CompaniesPlaceholderLeadsRepository $companiesPrimaryLeadsRepository,
-        private EntityManagerInterface $entityManager
+        private EntityManagerInterface $entityManager,
+        private LeadModel $leadModel,
     ) {
     }
 
@@ -29,7 +31,7 @@ class CompanySubscriber implements EventSubscriberInterface
     public function onCompanyPostSave(CompanyEvent $event): void
     {
         $company = $event->getCompany();
-        if($company->getName() === null) {
+        if (null === $company->getName()) {
             return;
         }
 
@@ -38,40 +40,27 @@ class CompanySubscriber implements EventSubscriberInterface
 
         if ($primaryLead instanceof Lead) {
             $this->updatePlaceholderLead($primaryLead, $company);
+
             return;
         }
 
-
-        //get relevant company email methode
-        $companyEmail = $company->getEmail();
-        if (!empty($companyEmail)) {
-            /** @var Lead|null $leadWithSameEmail */
-            $leadWithSameEmail = $this->entityManager
-                ->getRepository(Lead::class)
-                ->findOneBy(['email' => $companyEmail]);
-
-            if ($leadWithSameEmail instanceof Lead) {
-                //companyEmail = companyemail mit +1 vor @
-                $this->updatePlaceholderLead($leadWithSameEmail, $company);
-                $this->createCompaniesPlaceholderLeadsEntry($company, $leadWithSameEmail);
-                return;
-            }
-
-            $placeholderLead = $this->createPlaceholderLead($company);
-            $this->createCompaniesPlaceholderLeadsEntry($company, $placeholderLead);
-        }
+        $companyEmail    = $this->getEmailAddressForPlaceholderLead($company);
+        $placeholderLead = $this->createPlaceholderLead($company, $companyEmail);
+        $this->createCompaniesPlaceholderLeadsEntry($company, $placeholderLead);
     }
 
-    private function createPlaceholderLead(Company $company): Lead
+    private function createPlaceholderLead(Company $company, ?string $email): Lead
     {
-        $lead = new Lead();
-        return $this->updatePlaceholderLead($lead, $company);
+        $lead = $this->leadModel->getEntity();
+        \assert($lead instanceof Lead);
+
+        return $this->updatePlaceholderLead($lead, $company, $email);
     }
 
-    private function updatePlaceholderLead(Lead $lead, Company $company): Lead
+    private function updatePlaceholderLead(Lead $lead, Company $company, ?string $email = null): Lead
     {
         $lead->setFirstname($company->getName());
-        $lead->setEmail($company->getEmail() ?? '');
+        $lead->setEmail($email ?? $company->getEmail() ?? '');
         $lead->setAddress1($company->getAddress1() ?? '');
         $lead->setAddress2($company->getAddress2() ?? '');
         $lead->setCity($company->getCity() ?? '');
@@ -82,6 +71,7 @@ class CompanySubscriber implements EventSubscriberInterface
 
         $this->entityManager->persist($lead);
         $this->entityManager->flush();
+
         return $lead;
     }
 
@@ -93,5 +83,23 @@ class CompanySubscriber implements EventSubscriberInterface
 
         $this->entityManager->persist($relation);
         $this->entityManager->flush();
+    }
+
+    private function getEmailAddressForPlaceholderLead(Company $company): ?string
+    {
+        $companyEmail = $company->getEmail();
+        if (null === $companyEmail) {
+            return null;
+        }
+        /** @var Lead|null $leadWithSameEmail */
+        $leadWithSameEmail = $this->entityManager
+            ->getRepository(Lead::class)
+            ->findOneBy(['email' => $companyEmail]);
+
+        if ($leadWithSameEmail instanceof Lead) {
+            $companyEmail = str_replace('@', '+1@', $companyEmail);
+        }
+
+        return $companyEmail;
     }
 }

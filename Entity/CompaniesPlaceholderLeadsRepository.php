@@ -23,6 +23,7 @@ class CompaniesPlaceholderLeadsRepository extends CommonRepository
         if ($result instanceof CompaniesPlaceholderLeads) {
             return $result->getLead();
         }
+
         return null;
     }
 }

@@ -2,16 +2,11 @@
 
 namespace MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\Functional\EventListener;
 
-use Mautic\CampaignBundle\Entity\Campaign;
-use Mautic\CampaignBundle\Entity\Event;
-use Mautic\CampaignBundle\Entity\Lead as CampaignMember;
 use Mautic\LeadBundle\Entity\Company;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\PluginBundle\Entity\Integration;
 use Mautic\PluginBundle\Entity\Plugin;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompaniesPlaceholderLeads;
-use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompaniesSegments;
-use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompanySegment;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\EnablePluginTrait;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\MauticMysqlTestCase;
 
@@ -27,25 +22,39 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
         $this->setUpSymfony($this->configParams);
     }
 
-    public function testCreateNewCompanyWithNewPlaceholderLead()
+    public function testCreateNewCompanyWithNewPlaceholderLeadAndUpdateCompany(): void
     {
-        $company = $this->createCompany();
+        $company  = $this->createCompany();
         $leadRepo = $this->em->getRepository(Lead::class);
         $leads    = $leadRepo->findAll();
         $this->assertCount(1, $leads);
         $lead = $leads[0];
         $this->assertInstanceOf(Lead::class, $lead);
+        $this->assertIsString($lead->getEmail());
         $this->assertFieldsSetCorrectlyForPlaceholderLead($lead, $lead->getEmail());
         $this->assertCorrectCompanyPlaceholderEntryExists($company, $lead);
-    }
 
-    public function testContactWithSameEmailAsPlaceholderContactAlreadyExists(){
-        $this->createLead('a@a.com');
-        $company = $this->createCompany();
-        $leadRepo = $this->em->getRepository(Lead::class);
+        // Placeholder lead email should change after updating company email
+        $company->setEmail('b@b.com');
+        $companyModel = $this->getContainer()->get('mautic.lead.model.company');
+        $companyModel->saveEntity($company);
         $leads    = $leadRepo->findAll();
         $this->assertCount(1, $leads);
         $lead = $leads[0];
+        $this->assertInstanceOf(Lead::class, $lead);
+        $this->assertFieldsSetCorrectlyForPlaceholderLead($lead, 'b@b.com');
+        $this->assertCorrectCompanyPlaceholderEntryExists($company, $lead);
+    }
+
+    public function testContactWithSameEmailAsPlaceholderContactAlreadyExists(): void
+    {
+        $this->createLead('a@a.com');
+        $company  = $this->createCompany();
+        $leadRepo = $this->em->getRepository(Lead::class);
+        $leads    = $leadRepo->findAll();
+        $this->assertCount(2, $leads);
+        usort($leads, fn ($a, $b) => $a->getId() <=> $b->getId());
+        $lead = end($leads);
         $this->assertInstanceOf(Lead::class, $lead);
         $this->assertFieldsSetCorrectlyForPlaceholderLead($lead, 'a+1@a.com');
         $this->assertCorrectCompanyPlaceholderEntryExists($company, $lead);
@@ -53,7 +62,7 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
 
     private function assertCorrectCompanyPlaceholderEntryExists(Company $company, Lead $lead): void
     {
-        $placeholderContactRepo = $this->em->getRepository(CompaniesPlaceholderLeads::class);
+        $placeholderContactRepo    = $this->em->getRepository(CompaniesPlaceholderLeads::class);
         $placeholderContactEntries = $placeholderContactRepo->findAll();
         $this->assertCount(1, $placeholderContactEntries);
         $this->assertInstanceOf(CompaniesPlaceholderLeads::class, $placeholderContactEntries[0]);
@@ -91,6 +100,7 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
         $company->setDateModified(new \DateTime());
         $companyModel = $this->getContainer()->get('mautic.lead.model.company');
         $companyModel->saveEntity($company);
+
         return $company;
     }
 
@@ -102,6 +112,7 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
         $lead->setDateModified(new \DateTime());
         $leadModel = $this->getContainer()->get('mautic.lead.model.lead');
         $leadModel->saveEntity($lead);
+
         return $lead;
     }
 
