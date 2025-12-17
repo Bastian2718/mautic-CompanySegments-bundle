@@ -10,6 +10,7 @@ use Mautic\LeadBundle\LeadEvents;
 use Mautic\LeadBundle\Model\LeadModel;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompaniesPlaceholderLeads;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompaniesPlaceholderLeadsRepository;
+use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Integration\Config;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class CompanySubscriber implements EventSubscriberInterface
@@ -18,6 +19,7 @@ class CompanySubscriber implements EventSubscriberInterface
         private CompaniesPlaceholderLeadsRepository $companiesPrimaryLeadsRepository,
         private EntityManagerInterface $entityManager,
         private LeadModel $leadModel,
+        private Config $config,
     ) {
     }
 
@@ -30,6 +32,9 @@ class CompanySubscriber implements EventSubscriberInterface
 
     public function onCompanyPostSave(CompanyEvent $event): void
     {
+        if (!$this->config->isPublished()) {
+            return;
+        }
         $company = $event->getCompany();
         if (null === $company->getName()) {
             return;
@@ -72,6 +77,7 @@ class CompanySubscriber implements EventSubscriberInterface
 
         $this->entityManager->persist($lead);
         $this->entityManager->flush();
+        $this->leadModel->addToCompany($lead, $company);
 
         return $lead;
     }

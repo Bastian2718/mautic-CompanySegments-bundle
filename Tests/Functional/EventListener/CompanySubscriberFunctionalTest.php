@@ -3,9 +3,9 @@
 namespace MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\Functional\EventListener;
 
 use Mautic\LeadBundle\Entity\Company;
+use Mautic\LeadBundle\Entity\CompanyLead;
+use Mautic\LeadBundle\Entity\CompanyLeadRepository;
 use Mautic\LeadBundle\Entity\Lead;
-use Mautic\PluginBundle\Entity\Integration;
-use Mautic\PluginBundle\Entity\Plugin;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompaniesPlaceholderLeads;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\EnablePluginTrait;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\MauticMysqlTestCase;
@@ -17,9 +17,9 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
     public function setUp(): void
     {
         parent::setUp();
-        $this->activePlugin(true);
         $this->useCleanupRollback = false;
         $this->setUpSymfony($this->configParams);
+        $this->enablePlugin(true);
     }
 
     public function testCreateNewCompanyWithNewPlaceholderLeadAndUpdateCompany(): void
@@ -33,6 +33,7 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
         $this->assertIsString($lead->getEmail());
         $this->assertFieldsSetCorrectlyForPlaceholderLead($lead, $lead->getEmail());
         $this->assertCorrectCompanyPlaceholderEntryExists($company, $lead);
+        $this->assertLeadAddedToCompany($company, $lead);
 
         // Placeholder lead email should change after updating company email
         $company->setEmail('b@b.com');
@@ -58,6 +59,7 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
         $this->assertInstanceOf(Lead::class, $lead);
         $this->assertFieldsSetCorrectlyForPlaceholderLead($lead, 'a+1@a.com');
         $this->assertCorrectCompanyPlaceholderEntryExists($company, $lead);
+        $this->assertLeadAddedToCompany($company, $lead);
     }
 
     private function assertCorrectCompanyPlaceholderEntryExists(Company $company, Lead $lead): void
@@ -106,7 +108,7 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
         return $company;
     }
 
-    public function createLead(string $email): Lead
+    private function createLead(string $email): Lead
     {
         $lead = new Lead();
         $lead->setEmail($email);
@@ -118,22 +120,12 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
         return $lead;
     }
 
-    private function activePlugin(bool $isPublished = true): void
+    private function assertLeadAddedToCompany(Company $company, Lead $lead): void
     {
-        $this->client->request('GET', '/s/plugins/reload');
-        $integration = $this->em->getRepository(Integration::class)->findOneBy(['name' => 'LeuchtfeuerCompanySegments']);
-        if (null === $integration) {
-            $plugin      = $this->em->getRepository(Plugin::class)->findOneBy(['bundle' => 'LeuchtfeuerCompanySegmentsBundle']);
-            $integration = new Integration();
-            $integration->setName('LeuchtfeuerCompanySegments');
-            $integration->setPlugin($plugin);
-            $integration->setApiKeys([]);
-        }
-        $integration->setIsPublished($isPublished);
-        $integrationRepository = $this->em->getRepository(Integration::class);
-        assert($integrationRepository instanceof \Mautic\PluginBundle\Entity\IntegrationRepository);
-        $integrationRepository->saveEntity($integration);
-        $this->em->persist($integration);
-        $this->em->flush();
+        /** @var CompanyLeadRepository $companyLeadRepo */
+        $companyLeadRepo  = $this->em->getRepository(CompanyLead::class);
+        $companyLeads     = $companyLeadRepo->getCompanyLeads($company->getId());
+        $leadIds          = array_column($companyLeads, 'lead_id');
+        $this->assertContains((string) $lead->getId(), $leadIds);
     }
 }
