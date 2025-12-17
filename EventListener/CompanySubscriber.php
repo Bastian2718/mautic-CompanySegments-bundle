@@ -68,6 +68,7 @@ class CompanySubscriber implements EventSubscriberInterface
         $lead->setCountry($company->getCountry() ?? '');
         $lead->setZipcode($company->getZipcode() ?? '');
         $lead->setPhone($company->getPhone() ?? '');
+        $lead->addUpdatedField('fax', $company->getFieldValue('companyfax') ?? '');
 
         $this->entityManager->persist($lead);
         $this->entityManager->flush();

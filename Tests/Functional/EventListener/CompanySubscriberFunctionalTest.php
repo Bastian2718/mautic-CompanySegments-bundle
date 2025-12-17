@@ -82,6 +82,7 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
         $this->assertEquals('State', $lead->getState());
         $this->assertEquals('Country', $lead->getCountry());
         $this->assertEquals('12345', $lead->getZipcode());
+        $this->assertEquals('0987654321', $lead->getFieldValue('fax'));
     }
 
     private function createCompany(): Company
@@ -96,6 +97,7 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
         $company->setState('State');
         $company->setCountry('Country');
         $company->setZipcode('12345');
+        $company->addUpdatedField('companyfax', '0987654321');
         $company->setDateAdded(new \DateTime());
         $company->setDateModified(new \DateTime());
         $companyModel = $this->getContainer()->get('mautic.lead.model.company');
