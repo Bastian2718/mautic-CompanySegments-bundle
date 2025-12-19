@@ -5,6 +5,7 @@ namespace MauticPlugin\LeuchtfeuerCompanySegmentsBundle\EventListener;
 use Doctrine\ORM\EntityManagerInterface;
 use Mautic\LeadBundle\Entity\Company;
 use Mautic\LeadBundle\Entity\Lead;
+use Mautic\LeadBundle\Entity\LeadRepository;
 use Mautic\LeadBundle\Event\CompanyEvent;
 use Mautic\LeadBundle\LeadEvents;
 use Mautic\LeadBundle\Model\LeadModel;
@@ -16,7 +17,8 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 class CompanySubscriber implements EventSubscriberInterface
 {
     public function __construct(
-        private CompaniesPlaceholderLeadsRepository $companiesPrimaryLeadsRepository,
+        private CompaniesPlaceholderLeadsRepository $companiesPlaceholderLeadsRepository,
+        private LeadRepository $leadRepository,
         private EntityManagerInterface $entityManager,
         private LeadModel $leadModel,
         private Config $config,
@@ -26,7 +28,8 @@ class CompanySubscriber implements EventSubscriberInterface
     public static function getSubscribedEvents(): array
     {
         return [
-            LeadEvents::COMPANY_POST_SAVE => ['onCompanyPostSave', 0],
+            LeadEvents::COMPANY_POST_SAVE  => ['onCompanyPostSave', 0],
+            LeadEvents::COMPANY_PRE_DELETE => ['onCompanyPreDelete', 0],
         ];
     }
 
@@ -40,7 +43,7 @@ class CompanySubscriber implements EventSubscriberInterface
             return;
         }
 
-        $primaryLead = $this->companiesPrimaryLeadsRepository
+        $primaryLead = $this->companiesPlaceholderLeadsRepository
             ->getPrimaryLeadOfCompany($company->getId());
 
         if ($primaryLead instanceof Lead) {
@@ -98,15 +101,26 @@ class CompanySubscriber implements EventSubscriberInterface
         if (null === $companyEmail) {
             return null;
         }
-        /** @var Lead|null $leadWithSameEmail */
-        $leadWithSameEmail = $this->entityManager
-            ->getRepository(Lead::class)
-            ->findOneBy(['email' => $companyEmail]);
+
+        $leadWithSameEmail = $this->leadRepository->findOneBy(['email' => $companyEmail]);
 
         if ($leadWithSameEmail instanceof Lead) {
             $companyEmail = str_replace('@', '+1@', $companyEmail);
         }
 
         return $companyEmail;
+    }
+
+    public function onCompanyPreDelete(CompanyEvent $event): void
+    {
+        $company = $event->getCompany();
+
+        $placeholderEntry = $this->companiesPlaceholderLeadsRepository
+            ->findOneBy(['company' => $company->getId()]);
+
+        if ($placeholderEntry instanceof CompaniesPlaceholderLeads) {
+            $this->leadRepository->deleteEntity($placeholderEntry->getLead());
+        }
+        $this->entityManager->flush();
     }
 }

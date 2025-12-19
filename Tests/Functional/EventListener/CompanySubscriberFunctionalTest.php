@@ -6,6 +6,8 @@ use Mautic\LeadBundle\Entity\Company;
 use Mautic\LeadBundle\Entity\CompanyLead;
 use Mautic\LeadBundle\Entity\CompanyLeadRepository;
 use Mautic\LeadBundle\Entity\Lead;
+use Mautic\LeadBundle\Model\CompanyModel;
+use Mautic\LeadBundle\Model\LeadModel;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompaniesPlaceholderLeads;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\EnablePluginTrait;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\MauticMysqlTestCase;
@@ -38,6 +40,7 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
         // Placeholder lead email should change after updating company email
         $company->setEmail('b@b.com');
         $companyModel = $this->getContainer()->get('mautic.lead.model.company');
+        $this->assertInstanceOf(CompanyModel::class, $companyModel);
         $companyModel->saveEntity($company);
         $leads    = $leadRepo->findAll();
         $this->assertCount(1, $leads);
@@ -60,6 +63,21 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
         $this->assertFieldsSetCorrectlyForPlaceholderLead($lead, 'a+1@a.com');
         $this->assertCorrectCompanyPlaceholderEntryExists($company, $lead);
         $this->assertLeadAddedToCompany($company, $lead);
+    }
+
+    public function testPlaceholderLeadIsDeletedWithCompany(): void
+    {
+        $company  = $this->createCompany();
+        $leadRepo = $this->em->getRepository(Lead::class);
+        $leads    = $leadRepo->findAll();
+        $this->assertCount(1, $leads);
+
+        $companyModel = $this->getContainer()->get('mautic.lead.model.company');
+        $this->assertInstanceOf(CompanyModel::class, $companyModel);
+        $companyModel->deleteEntity($company);
+        $leadRepo = $this->em->getRepository(Lead::class);
+        $leads    = $leadRepo->findAll();
+        $this->assertCount(0, $leads);
     }
 
     private function assertCorrectCompanyPlaceholderEntryExists(Company $company, Lead $lead): void
@@ -87,10 +105,10 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
         $this->assertEquals('0987654321', $lead->getFieldValue('fax'));
     }
 
-    private function createCompany(): Company
+    private function createCompany(?string $name = null): Company
     {
         $company = new Company();
-        $company->setName('abc');
+        $company->setName($name ?? 'abc');
         $company->setEmail('a@a.com');
         $company->setPhone('1234567890');
         $company->setAddress1('Street 1');
@@ -103,6 +121,7 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
         $company->setDateAdded(new \DateTime());
         $company->setDateModified(new \DateTime());
         $companyModel = $this->getContainer()->get('mautic.lead.model.company');
+        $this->assertInstanceOf(CompanyModel::class, $companyModel);
         $companyModel->saveEntity($company);
 
         return $company;
@@ -115,6 +134,7 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
         $lead->setDateAdded(new \DateTime());
         $lead->setDateModified(new \DateTime());
         $leadModel = $this->getContainer()->get('mautic.lead.model.lead');
+        $this->assertInstanceOf(LeadModel::class, $leadModel);
         $leadModel->saveEntity($lead);
 
         return $lead;
