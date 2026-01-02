@@ -81,26 +81,26 @@ class UpdateCompanySegmentsCommand extends ModeratedCommand
         $excludeSegments       = $input->getOption('exclude');
 
         // Validate segment-id
-        if ($id !== null && (!is_numeric($id) || ((int) $id <= 0))) {
-                $output->writeln('<error>The --segment-id option must be a positive number or none.</error>');
+        if (null !== $id && (!is_numeric($id) || ((int) $id <= 0))) {
+            $output->writeln('<error>The --segment-id option must be a positive number or none.</error>');
 
-                return self::FAILURE;
+            return self::FAILURE;
         }
-        $id = $id !== null ? (int)$id : null;
+        $id = null !== $id ? (int) $id : null;
 
-        if(!is_numeric($batch) || (int)$batch < 1) {
+        if (!is_numeric($batch) || (int) $batch < 1) {
             $output->writeln('<error>The --batch-limit option must be a positive number.</error>');
 
             return self::FAILURE;
         }
-        $batch = (int)$batch;
+        $batch = (int) $batch;
 
-        if ($max !== null && (!is_numeric($max) || (int)$max <= 0)) {
+        if (null !== $max && (!is_numeric($max) || (int) $max <= 0)) {
             $output->writeln('<error>The --max-companies option must be a positive number or none.</error>');
 
             return self::FAILURE;
         }
-        $max = $max !== null ? (int)$max : null;
+        $max = null !== $max ? (int) $max : null;
 
         if (!$this->checkRunStatus($input, $output, $id)) {
             return Command::SUCCESS;
@@ -112,8 +112,9 @@ class UpdateCompanySegmentsCommand extends ModeratedCommand
 
         if (null !== $id) {
             $segment = $this->companySegmentModel->getEntity($id);
-            if(!$segment instanceof CompanySegment){
+            if (!$segment instanceof CompanySegment) {
                 $output->writeln('<error>The corresponding company segment could not be found.</error>');
+
                 return self::FAILURE;
             }
 
