@@ -1,6 +1,6 @@
 {
     "name": "leuchtfeuer/mautic-companysegments-bundle",
-    "description": "Provide a 2nd type of Segments which can contain Companies (and allows segment filters)",
+    "description": "Install this first! Base plugin for the Account Based Marketing suite. Also brings company segments, filters etc.",
     "license": "GPL-3.0-or-later",
     "type": "mautic-plugin",
     "homepage": "https://www.Leuchtfeuer.com",
