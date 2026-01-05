@@ -2,8 +2,8 @@
 
 return [
     'name'        => 'Company Segments by Leuchtfeuer',
-    'description' => 'Provide a 2nd type of Segments which can contain Companies (and allows segment filters).',
-    'version'     => '1.3.1',
+    'description' => 'Install this first! Base plugin for the Account Based Marketing suite. Also brings company segments, filters etc.',
+    'version'     => '1.3.2',
     'author'      => 'Leuchtfeuer Digital Marketing GmbH',
     'routes'      => [
         'main' => [
