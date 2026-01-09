@@ -92,7 +92,7 @@ class CompanySegmentServiceTest extends MauticMysqlTestCase
         self::assertArrayHasKey($companySegment->getId(), $companySegmentsCount);
         self::assertArrayHasKey('count', $companySegmentsCount[$companySegment->getId()]);
         $count = $companySegmentsCount[$companySegment->getId()]['count'];
-        self::assertSame('1', (string) $count);
+        self::assertSame('1', $count);
     }
 
     public static function provideFilterFields(): \Generator
@@ -207,7 +207,7 @@ class CompanySegmentServiceTest extends MauticMysqlTestCase
         self::assertArrayHasKey($companySegment->getId(), $companySegmentsCount);
         self::assertArrayHasKey('count', $companySegmentsCount[$companySegment->getId()]);
         $count = $companySegmentsCount[$companySegment->getId()]['count'];
-        self::assertSame('1', (string) $count);
+        self::assertSame('1', $count);
     }
 
     /**
@@ -361,7 +361,7 @@ class CompanySegmentServiceTest extends MauticMysqlTestCase
         self::assertArrayHasKey($companySegment->getId(), $companySegmentsCount);
         self::assertArrayHasKey('count', $companySegmentsCount[$companySegment->getId()]);
         $count = $companySegmentsCount[$companySegment->getId()]['count'];
-        self::assertSame('0', (string) $count);
+        self::assertSame('0', $count);
     }
 
     /**
@@ -467,7 +467,7 @@ class CompanySegmentServiceTest extends MauticMysqlTestCase
         self::assertArrayHasKey($companySegment->getId(), $companySegmentsCount);
         self::assertArrayHasKey('count', $companySegmentsCount[$companySegment->getId()]);
         $count = $companySegmentsCount[$companySegment->getId()]['count'];
-        self::assertSame('1', (string) $count);
+        self::assertSame('1', $count);
 
         // now change company2 to conform to filters and execute query.
         $company1 = $this->getCompany('company-1');
@@ -510,7 +510,7 @@ class CompanySegmentServiceTest extends MauticMysqlTestCase
         self::assertArrayHasKey($companySegment->getId(), $companySegmentsCount);
         self::assertArrayHasKey('count', $companySegmentsCount[$companySegment->getId()]);
         $count = $companySegmentsCount[$companySegment->getId()]['count'];
-        self::assertSame('1', (string) $count);
+        self::assertSame('1', $count);
 
         // remove conforming filter from company2
         $company2 = $this->getCompany('company-2');
@@ -548,7 +548,7 @@ class CompanySegmentServiceTest extends MauticMysqlTestCase
         self::assertArrayHasKey($companySegment->getId(), $companySegmentsCount);
         self::assertArrayHasKey('count', $companySegmentsCount[$companySegment->getId()]);
         $count = $companySegmentsCount[$companySegment->getId()]['count'];
-        self::assertSame('0', (string) $count);
+        self::assertSame('0', $count);
     }
 
     /**

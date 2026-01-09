@@ -233,7 +233,7 @@ jobs:
           elif [[ "${{ matrix.commands }}" == "Rector" ]]; then
             export SYMFONY_ENV=test
             bin/console cache:warmup
-            bin/rector process --dry-run --ansi -- ${{ env.PLUGIN_DIR }}
+            bin/rector process --dry-run --ansi --debug -- ${{ env.PLUGIN_DIR }}
           elif [[ "${{ matrix.commands }}" == "Twig Lint" ]]; then
             bin/console lint:twig ${{ env.PLUGIN_DIR }}
           elif [[ "${{ matrix.commands }}" == "CS Fixer" ]]; then
@@ -299,7 +299,7 @@ jobs:
             export APP_DEBUG=1
             ./vendor/bin/phpstan
           elif [[ "${{ matrix.commands }}" == "Rector" ]]; then
-            ./vendor/bin/rector process --dry-run --ansi
+            ./vendor/bin/rector process --dry-run --ansi --debug
           elif [[ "${{ matrix.commands }}" == "CS Fixer" ]]; then
             ./vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.php -v --dry-run --show-progress=dots --diff
           else
