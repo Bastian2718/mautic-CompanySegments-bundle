@@ -18,23 +18,14 @@ jobs:
       matrix:
         php-versions: ['8.1', '8.2', '8.3']
         db-types: ['mysql', 'mariadb']
-        mautic-versions: ['6.0', '6.x']
+        mautic-versions: ['6.0']
         include:
           - mautic-versions: 6.0
             php-versions: 8.1
-          - mautic-versions: 6.x
-            php-versions: 8.1
           - mautic-versions: 6.0
-            php-versions: 8.2
-          - mautic-versions: 6.x
             php-versions: 8.2
           - mautic-versions: 6.0
             php-versions: 8.3
-          - mautic-versions: 6.x
-            php-versions: 8.3
-        exclude:
-          - mautic-versions: 6.x # 5.2 will not support php-8.0
-            php-versions: 8.0
     services:
       database:
         image: ${{ matrix.db-types == 'mysql' && 'mysql:8.0' || 'mariadb:10.3' }}
