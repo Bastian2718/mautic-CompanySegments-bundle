@@ -55,7 +55,7 @@ class CompanySegmentQueryBuilder
 
         $companyTableAlias        = $changeAlias ? $this->generateRandomParameterName() : $this->companyRepository->getTableAlias();
 
-        $queryBuilder->select($companyTableAlias.'.id')->from(MAUTIC_TABLE_PREFIX.'companies', $companyTableAlias);
+        $queryBuilder->select($companyTableAlias.'.id')->from($this->getBaseTableName().'companies', $companyTableAlias);
         /*
          * Validate the plan, check for circular dependencies.
          *
@@ -119,20 +119,20 @@ class CompanySegmentQueryBuilder
         $leadTableAlias           = $this->generateRandomParameterName();
         $companyLeadsTableAlias   = $this->generateRandomParameterName();
         $companySegmentTableAlias = $this->generateRandomParameterName();
-        $queryBuilder->select($leadTableAlias.'.id')->from(MAUTIC_TABLE_PREFIX.'leads', $leadTableAlias)
+        $queryBuilder->select($leadTableAlias.'.id')->from($this->getBaseTableName().'leads', $leadTableAlias)
             ->join(
                 $leadTableAlias,
-                MAUTIC_TABLE_PREFIX.'companies_leads',
+                $this->getBaseTableName().'companies_leads',
                 $companyLeadsTableAlias,
                 $companyLeadsTableAlias.'.lead_id = '.$leadTableAlias.'.id and '.$companyLeadsTableAlias.'.is_primary = 1'
             )->join(
                 $companyLeadsTableAlias,
-                MAUTIC_TABLE_PREFIX.'companies',
+                $this->getBaseTableName().'companies',
                 $companyTableAlias,
                 $companyTableAlias.'.id = '.$companyLeadsTableAlias.'.company_id'
             )->join(
                 $companyTableAlias,
-                MAUTIC_TABLE_PREFIX.'companies_segments',
+                $this->getBaseTableName().'companies_segments',
                 $companySegmentTableAlias,
                 $companySegmentTableAlias.'.segment_id = '.$companySegment->getId().' and '.$companySegmentTableAlias.'.manually_removed = 0',
             );
@@ -219,7 +219,7 @@ class CompanySegmentQueryBuilder
      */
     public function addNewCompaniesRestrictions(QueryBuilder $queryBuilder, CompanySegment $segment, array $batchLimiters = []): QueryBuilder
     {
-        $companiesTableAlias = $queryBuilder->getTableAlias(MAUTIC_TABLE_PREFIX.'companies');
+        $companiesTableAlias = $queryBuilder->getTableAlias($this->getBaseTableName().'companies');
         \assert(is_string($companiesTableAlias));
         $expr               = $queryBuilder->expr();
         $tableAlias         = $this->generateRandomParameterName();
@@ -231,7 +231,7 @@ class CompanySegmentQueryBuilder
 
         $segmentQueryBuilder = $queryBuilder->createQueryBuilder()
             ->select($tableAlias.'.company_id')
-            ->from(MAUTIC_TABLE_PREFIX.CompaniesSegments::TABLE_NAME, $tableAlias)
+            ->from($this->getBaseTableName().CompaniesSegments::TABLE_NAME, $tableAlias)
             ->andWhere($expr->eq($tableAlias.'.segment_id', $segmentIdParameter));
 
         $queryBuilder->setParameter(sprintf('%ssegmentId', $tableAlias), $segmentId);
@@ -245,7 +245,7 @@ class CompanySegmentQueryBuilder
 
     public function addCompanySegmentQuery(QueryBuilder $queryBuilder, CompanySegment $companySegment): QueryBuilder
     {
-        $companiesTableAlias = $queryBuilder->getTableAlias(MAUTIC_TABLE_PREFIX.'companies');
+        $companiesTableAlias = $queryBuilder->getTableAlias($this->getBaseTableName().'companies');
         \assert(is_string($companiesTableAlias));
         $tableAlias = $this->generateRandomParameterName();
 
@@ -253,7 +253,7 @@ class CompanySegmentQueryBuilder
 
         $existsQueryBuilder
             ->select('null')
-            ->from(MAUTIC_TABLE_PREFIX.CompaniesSegments::TABLE_NAME, $tableAlias)
+            ->from($this->getBaseTableName().CompaniesSegments::TABLE_NAME, $tableAlias)
             ->andWhere($queryBuilder->expr()->eq($tableAlias.'.segment_id', (int) $companySegment->getId()));
 
         $existingQueryWherePart = $existsQueryBuilder->getQueryPart('where');
@@ -280,10 +280,10 @@ class CompanySegmentQueryBuilder
     public function addManuallySubscribedQuery(QueryBuilder $queryBuilder, CompanySegment $companySegment): QueryBuilder
     {
         \assert(null !== $companySegment->getId());
-        $companyTableAlias = $queryBuilder->getTableAlias(MAUTIC_TABLE_PREFIX.'companies');
+        $companyTableAlias = $queryBuilder->getTableAlias($this->getBaseTableName().'companies');
 
         if (!is_string($companyTableAlias)) {
-            throw new \LogicException('The table alias for '.MAUTIC_TABLE_PREFIX.'companies must be a string.');
+            throw new \LogicException('The table alias for '.$this->getBaseTableName().'companies must be a string.');
         }
 
         $tableAlias = $this->generateRandomParameterName();
@@ -292,7 +292,7 @@ class CompanySegmentQueryBuilder
 
         $existsQueryBuilder
             ->select('null')
-            ->from(MAUTIC_TABLE_PREFIX.CompaniesSegments::TABLE_NAME, $tableAlias)
+            ->from($this->getBaseTableName().CompaniesSegments::TABLE_NAME, $tableAlias)
             ->andWhere($queryBuilder->expr()->eq($tableAlias.'.segment_id', $companySegment->getId()))
             ->andWhere(
                 $queryBuilder->expr()->or(
@@ -320,16 +320,16 @@ class CompanySegmentQueryBuilder
     public function addManuallyUnsubscribedQuery(QueryBuilder $queryBuilder, CompanySegment $companySegment): QueryBuilder
     {
         \assert(null !== $companySegment->getId());
-        $companyTableAlias = $queryBuilder->getTableAlias(MAUTIC_TABLE_PREFIX.'companies');
+        $companyTableAlias = $queryBuilder->getTableAlias($this->getBaseTableName().'companies');
 
         if (!is_string($companyTableAlias)) {
-            throw new \LogicException('The table alias for '.MAUTIC_TABLE_PREFIX.'companies must be a string.');
+            throw new \LogicException('The table alias for '.$this->getBaseTableName().'companies must be a string.');
         }
 
         $tableAlias = $this->generateRandomParameterName();
         $queryBuilder->leftJoin(
             $companyTableAlias,
-            MAUTIC_TABLE_PREFIX.CompaniesSegments::TABLE_NAME,
+            $this->getBaseTableName().CompaniesSegments::TABLE_NAME,
             $tableAlias,
             $companyTableAlias.'.id = '.$tableAlias.'.company_id and '.$tableAlias.'.segment_id = :manually_unsubscribed_segment_id'
         )->setParameter('manually_unsubscribed_segment_id', $companySegment->getId())
@@ -420,12 +420,38 @@ class CompanySegmentQueryBuilder
 
         foreach ($segmentFilters as $segmentFilter) {
             if (isset($segmentFilter['field']) && CompanySegmentModel::PROPERTIES_FIELD === $segmentFilter['field']) {
-                $bcFilter     = $segmentFilter['filter'] ?? [];
-                $filterEdges  = $segmentFilter['properties']['filter'] ?? $bcFilter;
+                $filterEdges = [];
+                if (
+                    is_array($segmentFilter)
+                    && array_key_exists('filter', $segmentFilter)
+                    && is_array($segmentFilter['filter'])
+                ) {
+                    $filterEdges     = $segmentFilter['filter'];
+                }
+
+                if (
+                    is_array($segmentFilter)
+                    && array_key_exists('properties', $segmentFilter)
+                    && is_array($segmentFilter['properties'])
+                    && array_key_exists('filter', $segmentFilter['properties'])
+                    && is_array($segmentFilter['properties']['filter'])
+                ) {
+                    $filterEdges  = $segmentFilter['properties']['filter'];
+                }
+                /** @var array<int, int|string> $segmentEdges */
                 $segmentEdges = array_merge($segmentEdges, $filterEdges);
             }
         }
 
         return $segmentEdges;
+    }
+
+    private function getBaseTableName(): string
+    {
+        if (is_string(MAUTIC_TABLE_PREFIX)) {
+            return MAUTIC_TABLE_PREFIX;
+        }
+
+        return '';
     }
 }

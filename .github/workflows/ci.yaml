@@ -16,21 +16,16 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        php-versions: ['8.0', '8.1']
+        php-versions: ['8.1', '8.2', '8.3']
         db-types: ['mysql', 'mariadb']
-        mautic-versions: ['5.0', '5.1', '5.x']
+        mautic-versions: ['6.0']
         include:
-          - mautic-versions: 5.1
+          - mautic-versions: 6.0
+            php-versions: 8.1
+          - mautic-versions: 6.0
             php-versions: 8.2
-          - mautic-versions: 5.x
-            php-versions: 8.2
-          - mautic-versions: 5.x
+          - mautic-versions: 6.0
             php-versions: 8.3
-          - mautic-versions: 5.2
-            php-versions: 8.3
-        exclude:
-          - mautic-versions: 5.x # 5.2 will not support php-8.0
-            php-versions: 8.0
     services:
       database:
         image: ${{ matrix.db-types == 'mysql' && 'mysql:8.0' || 'mariadb:10.3' }}
@@ -155,9 +150,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        commands: ['PHPStan', 'CS Fixer', 'Rector', 'Twig Lint']
-        php-versions: ['8.1']
-        mautic-versions: ['5.x']
+        commands: ['PHPStan', 'CS Fixer', 'Twig Lint', 'Rector']
+        php-versions: ['8.3']
+        mautic-versions: ['6.0']
 
     name: ${{ matrix.commands }} - ${{ matrix.php-versions }} - ${{ matrix.mautic-versions }}
 
@@ -234,70 +229,6 @@ jobs:
             bin/console lint:twig ${{ env.PLUGIN_DIR }}
           elif [[ "${{ matrix.commands }}" == "CS Fixer" ]]; then
             bin/php-cs-fixer fix ${{ env.PLUGIN_DIR }} --config=.php-cs-fixer.php -v --dry-run --using-cache=no --show-progress=dots --diff
-          else
-            echo "Invalid command"
-            exit 1
-          fi
-  bundle:
-    runs-on: ubuntu-latest
-
-    # these should contain latest stable PHP and next Mautic version, to warn about the baseline changes.
-    strategy:
-      fail-fast: false
-      matrix:
-        commands: [ 'PHPStan', 'CS Fixer', 'Rector' ]
-        php-versions: [ '8.3' ]
-        mautic-versions: [ '5.x' ]
-
-    name: ${{ matrix.commands }} - ${{ matrix.php-versions }} - ${{ matrix.mautic-versions }}
-
-    steps:
-      - name: Checkout Bundle
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Rector Cache
-        if: ${{matrix.commands == 'Rector'}}
-        uses: actions/cache@v4
-        with:
-          path: ./var/cache/rector
-          key: ${{ runner.os }}-rector-bundle-${{ hashFiles('**/composer.lock') }}-${{ github.run_id }}
-          restore-keys: |
-            ${{ runner.os }}-rector-bundle-${{ hashFiles('**/composer.lock') }}
-            ${{ runner.os }}-rector-bundle-
-
-      - name: PHPStan Cache
-        if: ${{matrix.commands == 'PHPStan'}}
-        uses: actions/cache@v4
-        with:
-          path: ./var/phpstan-cache
-          key: ${{ runner.os }}-phpstan-bundle-${{ hashFiles('**/composer.lock') }}-${{ github.run_id }}
-          restore-keys: |
-            ${{ runner.os }}-phpstan-bundle-${{ hashFiles('**/composer.lock') }}
-            ${{ runner.os }}-phpstan-bundle-
-
-      - name: Setup PHP, with composer and extensions
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, mysql, pdo_mysql
-          ini-values: opcache.enable_cli=0
-
-      - name: Install dependencies
-        uses: "ramsey/composer-install@v3"
-
-      - name: Run ${{ matrix.commands }}
-        run: |
-          if [[ "${{ matrix.commands }}" == "PHPStan" ]]; then
-            export SYMFONY_ENV=dev
-            export APP_ENV=dev
-            export APP_DEBUG=1
-            ./vendor/bin/phpstan
-          elif [[ "${{ matrix.commands }}" == "Rector" ]]; then
-            ./vendor/bin/rector process --dry-run --ansi
-          elif [[ "${{ matrix.commands }}" == "CS Fixer" ]]; then
-            ./vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.php -v --dry-run --show-progress=dots --diff
           else
             echo "Invalid command"
             exit 1

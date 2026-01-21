@@ -66,8 +66,6 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
 
         $resultCompaniesSegmentsAfter = $this->em->getRepository(CompaniesSegments::class)->findAll();
         self::assertCount(2, $resultCompaniesSegmentsAfter);
-        assert($resultCompaniesSegmentsAfter[0] instanceof CompaniesSegments);
-        assert($resultCompaniesSegmentsAfter[1] instanceof CompaniesSegments);
         self::assertEquals($resultCompaniesSegmentsAfter[0]->getCompany()->getId(), $resultCompaniesSegmentsAfter[1]->getCompany()->getId());
         self::assertEquals($resultCompaniesSegmentsAfter[1]->getCompanySegment()->getId(), $companySegmentTwo->getId());
     }

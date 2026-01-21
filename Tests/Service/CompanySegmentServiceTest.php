@@ -86,7 +86,13 @@ class CompanySegmentServiceTest extends MauticMysqlTestCase
 
         $companySegmentService = self::getContainer()->get(CompanySegmentService::class);
         \assert($companySegmentService instanceof CompanySegmentService);
-        self::assertSame('1', $companySegmentService->getTotalCompanySegmentsCompaniesCount($companySegment)[$companySegment->getId()]['count']);
+        $companySegmentsCount = $companySegmentService->getTotalCompanySegmentsCompaniesCount($companySegment);
+        self::assertIsArray($companySegmentsCount);
+        self::assertIsInt($companySegment->getId());
+        self::assertArrayHasKey($companySegment->getId(), $companySegmentsCount);
+        self::assertArrayHasKey('count', $companySegmentsCount[$companySegment->getId()]);
+        $count = $companySegmentsCount[$companySegment->getId()]['count'];
+        self::assertSame('1', $count);
     }
 
     public static function provideFilterFields(): \Generator
@@ -195,7 +201,13 @@ class CompanySegmentServiceTest extends MauticMysqlTestCase
 
         $companySegmentService = self::getContainer()->get(CompanySegmentService::class);
         \assert($companySegmentService instanceof CompanySegmentService);
-        self::assertSame('1', $companySegmentService->getTotalCompanySegmentsCompaniesCount($companySegment)[$companySegment->getId()]['count']);
+        $companySegmentsCount = $companySegmentService->getTotalCompanySegmentsCompaniesCount($companySegment);
+        self::assertIsArray($companySegmentsCount);
+        self::assertIsInt($companySegment->getId());
+        self::assertArrayHasKey($companySegment->getId(), $companySegmentsCount);
+        self::assertArrayHasKey('count', $companySegmentsCount[$companySegment->getId()]);
+        $count = $companySegmentsCount[$companySegment->getId()]['count'];
+        self::assertSame('1', $count);
     }
 
     /**
@@ -225,6 +237,9 @@ class CompanySegmentServiceTest extends MauticMysqlTestCase
         self::assertCount(1, $existingFilters, 'Self-check.');
         self::assertIsArray($existingFilters[0], 'Self-check.');
         self::assertSame(CompanySegmentModel::PROPERTIES_FIELD, $existingFilters[0]['field'], 'Self-check.');
+        self::assertIsArray($existingFilters[0]['properties']);
+        self::assertArrayHasKey('filter', $existingFilters[0]['properties']);
+        self::assertIsArray($existingFilters[0]['properties']['filter']);
         $existingFilters[0]['properties']['filter'][0] = ''.$companySegmentWithFilter->getId();
         $companySegment->setFilters($existingFilters);
         $companySegmentModel->saveEntity($companySegment);
@@ -340,7 +355,13 @@ class CompanySegmentServiceTest extends MauticMysqlTestCase
 
         $companySegmentService = self::getContainer()->get(CompanySegmentService::class);
         \assert($companySegmentService instanceof CompanySegmentService);
-        self::assertSame('0', $companySegmentService->getTotalCompanySegmentsCompaniesCount($companySegmentWithFilter)[$companySegmentWithFilter->getId()]['count']);
+        $companySegmentsCount = $companySegmentService->getTotalCompanySegmentsCompaniesCount($companySegment);
+        self::assertIsArray($companySegmentsCount);
+        self::assertIsInt($companySegment->getId());
+        self::assertArrayHasKey($companySegment->getId(), $companySegmentsCount);
+        self::assertArrayHasKey('count', $companySegmentsCount[$companySegment->getId()]);
+        $count = $companySegmentsCount[$companySegment->getId()]['count'];
+        self::assertSame('0', $count);
     }
 
     /**
@@ -440,7 +461,13 @@ class CompanySegmentServiceTest extends MauticMysqlTestCase
 
         $companySegmentService = self::getContainer()->get(CompanySegmentService::class);
         \assert($companySegmentService instanceof CompanySegmentService);
-        self::assertSame('1', $companySegmentService->getTotalCompanySegmentsCompaniesCount($companySegment)[$companySegment->getId()]['count']);
+        $companySegmentsCount = $companySegmentService->getTotalCompanySegmentsCompaniesCount($companySegment);
+        self::assertIsArray($companySegmentsCount);
+        self::assertIsInt($companySegment->getId());
+        self::assertArrayHasKey($companySegment->getId(), $companySegmentsCount);
+        self::assertArrayHasKey('count', $companySegmentsCount[$companySegment->getId()]);
+        $count = $companySegmentsCount[$companySegment->getId()]['count'];
+        self::assertSame('1', $count);
 
         // now change company2 to conform to filters and execute query.
         $company1 = $this->getCompany('company-1');
@@ -477,7 +504,13 @@ class CompanySegmentServiceTest extends MauticMysqlTestCase
 
         $companySegmentService = self::getContainer()->get(CompanySegmentService::class);
         \assert($companySegmentService instanceof CompanySegmentService);
-        self::assertSame('1', $companySegmentService->getTotalCompanySegmentsCompaniesCount($companySegment)[$companySegment->getId()]['count']);
+        $companySegmentsCount = $companySegmentService->getTotalCompanySegmentsCompaniesCount($companySegment);
+        self::assertIsArray($companySegmentsCount);
+        self::assertIsInt($companySegment->getId());
+        self::assertArrayHasKey($companySegment->getId(), $companySegmentsCount);
+        self::assertArrayHasKey('count', $companySegmentsCount[$companySegment->getId()]);
+        $count = $companySegmentsCount[$companySegment->getId()]['count'];
+        self::assertSame('1', $count);
 
         // remove conforming filter from company2
         $company2 = $this->getCompany('company-2');
@@ -509,7 +542,13 @@ class CompanySegmentServiceTest extends MauticMysqlTestCase
 
         $companySegmentService = self::getContainer()->get(CompanySegmentService::class);
         \assert($companySegmentService instanceof CompanySegmentService);
-        self::assertSame('0', $companySegmentService->getTotalCompanySegmentsCompaniesCount($companySegment)[$companySegment->getId()]['count']);
+        $companySegmentsCount = $companySegmentService->getTotalCompanySegmentsCompaniesCount($companySegment);
+        self::assertIsArray($companySegmentsCount);
+        self::assertIsInt($companySegment->getId());
+        self::assertArrayHasKey($companySegment->getId(), $companySegmentsCount);
+        self::assertArrayHasKey('count', $companySegmentsCount[$companySegment->getId()]);
+        $count = $companySegmentsCount[$companySegment->getId()]['count'];
+        self::assertSame('0', $count);
     }
 
     /**

@@ -18,6 +18,7 @@ class CompanySegmentControllerTest extends MauticMysqlTestCase
         $this->enablePlugin(true);
         $this->useCleanupRollback = false;
         $this->setUpSymfony($this->configParams);
+        $this->loginAdminUser();
     }
 
     public function testNoSuccessDeleteCompanySegmentBecauseInUseInSegment(): void
@@ -45,6 +46,7 @@ class CompanySegmentControllerTest extends MauticMysqlTestCase
         self::assertStringContainsString('Company Segment cannot be deleted, it is required by segment', $this->client->getResponse()->getContent());
         $this->client->request('POST', '/s/company-segments/view/'.$companySegmentTBS->getId());
         self::assertIsString($companySegmentTBS->getName());
+        self::assertIsString($this->client->getResponse()->getContent());
         self::assertStringContainsString($companySegmentTBS->getName(), $this->client->getResponse()->getContent());
     }
 
@@ -115,9 +117,10 @@ class CompanySegmentControllerTest extends MauticMysqlTestCase
         $companySegmentRecord = $this->createCompanySegment('Company Record', 'company-record', true, $filters);
         $url                  = sprintf('/s/company-segments/batchDelete?tmpl=list&ids=["%s","%s"]', $companySegmentGlibi->getId(), $companySegmentTBS->getId());
         $this->client->request('POST', $url);
-        self::assertIsString($this->client->getResponse()->getContent());
-        self::assertStringContainsString('cannot be deleted, it is required by other segments.', $this->client->getResponse()->getContent());
-        self::assertStringContainsString('cannot be deleted, it is required by other company segments.', $this->client->getResponse()->getContent());
-        self::assertStringNotContainsString('has been deleted!', $this->client->getResponse()->getContent());
+        $content = $this->client->getResponse()->getContent();
+        self::assertIsString($content);
+        self::assertStringContainsString('cannot be deleted, it is required by other segments.', $content);
+        self::assertStringContainsString('cannot be deleted, it is required by other company segments.', $content);
+        self::assertStringNotContainsString('has been deleted!', $content);
     }
 }

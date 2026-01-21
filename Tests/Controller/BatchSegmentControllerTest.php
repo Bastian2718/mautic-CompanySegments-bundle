@@ -8,6 +8,7 @@ use Mautic\LeadBundle\DataFixtures\ORM\LoadCompanyData;
 use Mautic\UserBundle\DataFixtures\ORM\LoadRoleData;
 use Mautic\UserBundle\DataFixtures\ORM\LoadUserData;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\DataFixtures\ORM\LoadCompanySegmentData;
+use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\HelperCompanySegmentTestTrait;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\MauticMysqlTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,6 +16,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class BatchSegmentControllerTest extends MauticMysqlTestCase
 {
+    use HelperCompanySegmentTestTrait;
+
     /**
      * When I add two Companies to the Company Segment “test1” via bulk action, the “# Companies” value in the Company Segments list view is increased by two.
      */
@@ -59,6 +62,7 @@ class BatchSegmentControllerTest extends MauticMysqlTestCase
         $payload = $form->getPhpValues();
         self::assertCount(1, $payload);
         self::assertArrayHasKey('company_batch', $payload);
+        self::assertIsArray($payload['company_batch']);
         self::assertCount(3, $payload['company_batch']);
         self::assertArrayHasKey('_token', $payload['company_batch']);
         self::assertArrayHasKey('add', $payload['company_batch']);
@@ -129,8 +133,10 @@ class BatchSegmentControllerTest extends MauticMysqlTestCase
             'company_batch[remove]' => [$segmentId],
         ]);
         $payload = $form->getPhpValues();
+        self::assertIsArray($payload);
         self::assertCount(1, $payload);
         self::assertArrayHasKey('company_batch', $payload);
+        self::assertIsArray($payload['company_batch']);
         self::assertCount(3, $payload['company_batch']);
         self::assertArrayHasKey('remove', $payload['company_batch']);
         self::assertArrayHasKey('_token', $payload['company_batch']);

@@ -93,6 +93,7 @@ class CompanySegmentRepository extends CommonRepository
         }
 
         if ($returnParameter) {
+            /** @phpstan-ignore-next-line */
             $string     = ($filter->strict) ? $filter->string : "%{$filter->string}%";
             $parameters = [$unique => $string];
         }
@@ -154,6 +155,7 @@ class CompanySegmentRepository extends CommonRepository
             }
         }
 
+        /** @var array<int, CompanySegment> $return */
         return $return;
     }
 }

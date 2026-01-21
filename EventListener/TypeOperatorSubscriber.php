@@ -133,9 +133,17 @@ class TypeOperatorSubscriber implements EventSubscriberInterface
             $properties['type'] = $type;
 
             if ('boolean' === $type) {
+                $no  = 'no';
+                $yes = 'yes';
+                if (array_key_exists('no', $properties) && is_string($properties['no'])) {
+                    $no = $properties['no'];
+                }
+                if (array_key_exists('yes', $properties) && is_string($properties['yes'])) {
+                    $yes = $properties['yes'];
+                }
                 $properties['list'] = [
-                    $properties['no']  => 0,
-                    $properties['yes'] => 1,
+                    $no  => 0,
+                    $yes => 1,
                 ];
             } elseif (in_array($type, ['select', 'multiselect'], true)) {
                 $properties['list'] = FormFieldHelper::parseListForChoices($properties['list'] ?? []);
@@ -170,9 +178,17 @@ class TypeOperatorSubscriber implements EventSubscriberInterface
             $properties['type'] = $type;
 
             if ('boolean' === $type) {
+                $no  = 'no';
+                $yes = 'yes';
+                if (array_key_exists('no', $properties) && is_string($properties['no'])) {
+                    $no = $properties['no'];
+                }
+                if (array_key_exists('yes', $properties) && is_string($properties['yes'])) {
+                    $yes = $properties['yes'];
+                }
                 $properties['list'] = [
-                    $properties['no']  => 0,
-                    $properties['yes'] => 1,
+                    $no  => 0,
+                    $yes => 1,
                 ];
             } elseif (in_array($type, ['select', 'multiselect'], true)) {
                 $properties['list'] = FormFieldHelper::parseListForChoices($properties['list'] ?? []);
@@ -241,6 +257,7 @@ class TypeOperatorSubscriber implements EventSubscriberInterface
     {
         $choices = $event->getChoices();
         $choices = $this->setIncludeExcludeOperatorsToTextFilters($choices);
+        // @phpstan-ignore-next-line
         $event->setChoices($choices);
     }
 
@@ -257,32 +274,53 @@ class TypeOperatorSubscriber implements EventSubscriberInterface
     }
 
     /**
-     * @param array <string, array<string, array<string, mixed>>> $choices
-     * @param array <int,string>                                  $groupAllow
+     * Normalize and validate incoming choices to ensure string keys and array values,
+     * then add include/exclude operators to text fields.
      *
-     * @return array <string, array<string, array<string, mixed>>>
+     * @param array<mixed>      $choices
+     * @param array<int,string> $groupAllow
+     *
+     * @return array<mixed>
      */
-    private function setIncludeExcludeOperatorsToTextFilters(array $choices, array $groupAllow =[]): array
+    private function setIncludeExcludeOperatorsToTextFilters(array $choices, array $groupAllow = []): array
     {
+        // Normalize to array<string, array<string, array<string,mixed>>>
+        $normalized = [];
+
         foreach ($choices as $group => $groups) {
+            if (!is_string($group) || !is_array($groups)) {
+                continue;
+            }
+
+            foreach ($groups as $alias => $choice) {
+                if (!is_string($alias) || !is_array($choice)) {
+                    continue;
+                }
+
+                $normalized[$group][$alias] = $choice;
+            }
+        }
+
+        foreach ($normalized as $group => $groups) {
             if ([] !== $groupAllow && !in_array($group, $groupAllow, true)) {
                 continue;
             }
-            if (!is_array($groups)) {
-                continue;
-            }
+
             foreach ($groups as $alias => $choice) {
                 $type = null;
-                if (is_array($choice) && is_array($choice['properties'])) {
+                if (isset($choice['properties']) && is_array($choice['properties'])) {
                     $type = $choice['properties']['type'] ?? null;
                 }
+
                 if ('text' === $type) {
-                    assert(is_array($choices[$group]));
-                    if (!is_array($choices[$group][$alias])) {
-                        $choices[$group][$alias] = [];
+                    if (!array_key_exists($group, $normalized) || !is_array($normalized[$group])) {
+                        $normalized[$group] = [];
+                    }
+                    if (!isset($normalized[$group][$alias]) || !is_array($normalized[$group][$alias])) {
+                        $normalized[$group][$alias] = [];
                     }
 
-                    $choices[$group][$alias]['operators'] = $this->typeOperatorProvider->getOperatorsIncluding([
+                    $normalized[$group][$alias]['operators'] = $this->typeOperatorProvider->getOperatorsIncluding([
                         OperatorOptions::EQUAL_TO,
                         OperatorOptions::NOT_EQUAL_TO,
                         OperatorOptions::EMPTY,
@@ -301,6 +339,6 @@ class TypeOperatorSubscriber implements EventSubscriberInterface
             }
         }
 
-        return $choices;
+        return $normalized;
     }
 }

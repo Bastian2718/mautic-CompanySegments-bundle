@@ -141,6 +141,7 @@ class UpdateCompanySegmentsCommand extends ModeratedCommand
 
             foreach ($companySegments as $companySegment) {
                 $startTimeForSingleSegment = time();
+                assert($companySegment instanceof CompanySegment);
                 $this->rebuildSegment($companySegment, $batch, $max, $output);
                 if ($enableTimeMeasurement) {
                     $totalTime = round(microtime(true) - $startTimeForSingleSegment, 2);

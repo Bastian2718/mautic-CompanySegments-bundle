@@ -7,7 +7,6 @@ namespace MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Controller\Api;
 use Doctrine\Persistence\ManagerRegistry;
 use Mautic\ApiBundle\Controller\CommonApiController;
 use Mautic\ApiBundle\Helper\EntityResultHelper;
-use Mautic\CoreBundle\Factory\MauticFactory;
 use Mautic\CoreBundle\Factory\ModelFactory;
 use Mautic\CoreBundle\Helper\AppVersion;
 use Mautic\CoreBundle\Helper\CoreParametersHelper;
@@ -39,7 +38,6 @@ class CompanySegmentApiController extends CommonApiController
         ModelFactory $modelFactory,
         EventDispatcherInterface $dispatcher,
         CoreParametersHelper $coreParametersHelper,
-        MauticFactory $factory,
         private CompanySegmentModel $companySegmentModel,
     ) {
         $this->model             = $this->companySegmentModel;
@@ -58,8 +56,7 @@ class CompanySegmentApiController extends CommonApiController
             $doctrine,
             $modelFactory,
             $dispatcher,
-            $coreParametersHelper,
-            $factory
+            $coreParametersHelper
         );
     }
 
@@ -114,7 +111,9 @@ class CompanySegmentApiController extends CommonApiController
             return $valid;
         }
 
+        /** @var array<int, array<int|string>> $errors */
         $errors            = [];
+        /** @var array<int, CompanySegment|null> $entities */
         $entities          = $this->getBatchEntities($parameters, $errors, true);
         $ids               =  [];
         foreach ($entities as $entity) {
@@ -131,7 +130,18 @@ class CompanySegmentApiController extends CommonApiController
             $result           = [];
             $result['errors'] = $errorMessage;
 
-            return $this->returnError((string) json_encode($result), Response::HTTP_PRECONDITION_FAILED);
+            try {
+                $json = json_encode($result, JSON_THROW_ON_ERROR);
+            } catch (\JsonException) {
+                $json = json_encode(
+                    ['errors' => $this->translator->trans('mautic.core.error.json_encode_failed')]
+                );
+                if (false === $json) {
+                    $json = '{"errors":"unknown"}';
+                }
+            }
+
+            return $this->returnError($json, Response::HTTP_PRECONDITION_FAILED);
         }
 
         $this->inBatchMode = true;
@@ -145,11 +155,13 @@ class CompanySegmentApiController extends CommonApiController
         foreach ($entities as $key => $entity) {
             if (!($entity instanceof CompanySegment) || null === $entity->getId() || 0 === $entity->getId()) {
                 $entityError = $entity instanceof CompanySegment ? $entity : null;
+                /** @var array<int, array<int|string>> $errors */
                 $this->setBatchError($key, 'mautic.core.error.notfound', Response::HTTP_NOT_FOUND, $errors, $entities, $entityError);
                 continue;
             }
 
             if (false === $this->checkEntityAccess($entity, 'delete')) {
+                /** @var array<int, array<int|string>> $errors */
                 $this->setBatchError($key, 'mautic.core.error.accessdenied', Response::HTTP_FORBIDDEN, $errors, $entities, $entity);
                 continue;
             }

@@ -54,7 +54,11 @@ class CompanySegmentService
 
         $qb = $this->companySegmentQueryBuilder->wrapInCount($qb);
 
-        $this->logger->debug('Company Segment QB: Create SQL: '.$qb->getDebugOutput(), ['segmentId' => $companySegmentId]);
+        $debug = '';
+        if (is_string($qb->getDebugOutput())) {
+            $debug = $qb->getDebugOutput();
+        }
+        $this->logger->debug('Company Segment QB: Create SQL: '.$debug, ['segmentId' => $companySegmentId]);
 
         $result = $this->timedFetch($qb, $companySegmentId);
         \assert(3 === count($result));
@@ -97,9 +101,12 @@ class CompanySegmentService
 
         $this->addMinMaxLimiters($qb, $batchLimiters, 'companies', 'id');
 
-        $qb = $this->companySegmentQueryBuilder->wrapInCount($qb);
-
-        $this->logger->debug('Company Segment QB: Create SQL: '.$qb->getDebugOutput(), ['segmentId' => $companySegmentId]);
+        $qb    = $this->companySegmentQueryBuilder->wrapInCount($qb);
+        $debug = '';
+        if (is_string($qb->getDebugOutput())) {
+            $debug = $qb->getDebugOutput();
+        }
+        $this->logger->debug('Company Segment QB: Create SQL: '.$debug, ['segmentId' => $companySegmentId]);
 
         $result = $this->timedFetch($qb, $companySegmentId);
 
@@ -141,7 +148,11 @@ class CompanySegmentService
 
         $segmentId = $segment->getId();
         \assert(null !== $segmentId);
-        $this->logger->debug('Company Segment QB: Orphan Companies Count SQL: '.$queryBuilder->getDebugOutput(), ['segmentId' => $segmentId]);
+        $debug = '';
+        if (is_string($queryBuilder->getDebugOutput())) {
+            $debug = $queryBuilder->getDebugOutput();
+        }
+        $this->logger->debug('Company Segment QB: Orphan Companies Count SQL: '.$debug, ['segmentId' => $segmentId]);
 
         $result = $this->timedFetch($queryBuilder, $segmentId);
 
@@ -162,7 +173,11 @@ class CompanySegmentService
 
         $segmentId = $segment->getId();
         \assert(null !== $segmentId);
-        $this->logger->debug('Company Segment QB: Orphan Companies SQL: '.$queryBuilder->getDebugOutput(), ['segmentId' => $segmentId]);
+        $debug = '';
+        if (is_string($queryBuilder->getDebugOutput())) {
+            $debug = $queryBuilder->getDebugOutput();
+        }
+        $this->logger->debug('Company Segment QB: Orphan Companies SQL: '.$debug, ['segmentId' => $segmentId]);
 
         $result = $this->timedFetchAll($queryBuilder, $segmentId);
 
@@ -174,8 +189,12 @@ class CompanySegmentService
      */
     private function getNewCompanySegmentCompaniesQueryBuilder(CompanySegment $segment, array $batchLimiters, bool $addNewContactsRestrictions = true): QueryBuilder
     {
-        $queryBuilder        = $this->getNewSegmentContactsQuery($segment, $batchLimiters, $addNewContactsRestrictions);
-        $companiesTableAlias = $queryBuilder->getTableAlias(MAUTIC_TABLE_PREFIX.'companies');
+        $queryBuilder         = $this->getNewSegmentContactsQuery($segment, $batchLimiters, $addNewContactsRestrictions);
+        $preTableName         = '';
+        if (is_string(MAUTIC_TABLE_PREFIX)) {
+            $preTableName = MAUTIC_TABLE_PREFIX;
+        }
+        $companiesTableAlias = $queryBuilder->getTableAlias($preTableName.'companies');
         \assert(is_string($companiesTableAlias));
 
         // Prepend the DISTINCT to the beginning of the select array
@@ -196,8 +215,11 @@ class CompanySegmentService
         array_unshift($select, $distinct.$companiesTableAlias.'.id');
         $queryBuilder->resetQueryPart('select');
         $queryBuilder->select($select);
-
-        $this->logger->debug('Company Segment QB: Create Companies SQL: '.$queryBuilder->getDebugOutput(), ['segmentId' => $segment->getId()]);
+        $debug = '';
+        if (is_string($queryBuilder->getDebugOutput())) {
+            $debug = $queryBuilder->getDebugOutput();
+        }
+        $this->logger->debug('Company Segment QB: Create Companies SQL: '.$debug, ['segmentId' => $segment->getId()]);
 
         $this->addMinMaxLimiters($queryBuilder, $batchLimiters, 'companies', 'id');
 
@@ -273,7 +295,11 @@ class CompanySegmentService
 
         $qbO  = $queryBuilder->createQueryBuilder();
         $qbO->select('orp.company_id as id, orp.segment_id');
-        $qbO->from(MAUTIC_TABLE_PREFIX.CompaniesSegments::TABLE_NAME, 'orp');
+        $preTable = '';
+        if (is_string(MAUTIC_TABLE_PREFIX)) {
+            $preTable = MAUTIC_TABLE_PREFIX;
+        }
+        $qbO->from($preTable.CompaniesSegments::TABLE_NAME, 'orp');
         $qbO->setParameters($queryBuilder->getParameters(), $queryBuilder->getParameterTypes());
         $qbO->andWhere($expr->eq('orp.segment_id', ':orpsegid'));
         $qbO->andWhere($expr->eq('orp.manually_added', ':false'));

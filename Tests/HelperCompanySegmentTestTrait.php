@@ -10,6 +10,7 @@ use Mautic\CampaignBundle\Entity\Lead as CampaignMember;
 use Mautic\LeadBundle\Entity\Company;
 use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Entity\LeadList;
+use Mautic\UserBundle\Entity\User;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompaniesSegments;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompanySegment;
 
@@ -146,5 +147,24 @@ trait HelperCompanySegmentTestTrait
         $this->em->flush();
 
         return $segment;
+    }
+
+    /**
+     * @return string[]
+     */
+    private function createAjaxHeaders(): array
+    {
+        return [
+            'HTTP_Content-Type'     => 'application/x-www-form-urlencoded; charset=UTF-8',
+            'HTTP_X-Requested-With' => 'XMLHttpRequest',
+            'HTTP_X-CSRF-Token'     => $this->getCsrfToken('mautic_ajax_post'),
+        ];
+    }
+
+    private function loginAdminUser(): void
+    {
+        $user = $this->em->getRepository(User::class)->findOneBy(['username' => 'admin']);
+        assert($user instanceof User);
+        $this->loginUser($user);
     }
 }

@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace MauticPlugin\LeuchtfeuerCompanySegmentsBundle\EventListener;
 
-use Mautic\CoreBundle\Factory\MauticFactory;
-use Mautic\PluginBundle\Bundle\PluginBundleBase;
+use Mautic\PluginBundle\Bundle\PluginDatabase;
 use Mautic\PluginBundle\Event\PluginUpdateEvent;
 use Mautic\PluginBundle\Model\PluginModel;
 use Mautic\PluginBundle\PluginEvents;
@@ -15,7 +14,7 @@ class UpdatePluginSubscriber implements EventSubscriberInterface
 {
     public function __construct(
         private PluginModel $pluginModel,
-        private MauticFactory $factory,
+        private PluginDatabase $pluginDatabase,
     ) {
         // Constructor logic if needed
     }
@@ -35,7 +34,7 @@ class UpdatePluginSubscriber implements EventSubscriberInterface
         $tableInstalled          =$this->pluginModel->getInstalledPluginTables($pluginMetadata);
         if ([] === $tableInstalled) {
             // No tables installed, so we can install the schema
-            PluginBundleBase::installPluginSchema($companyEventLogMetadata, $this->factory);
+            $this->pluginDatabase->installPluginSchema($companyEventLogMetadata);
 
             return;
         }
@@ -49,7 +48,8 @@ class UpdatePluginSubscriber implements EventSubscriberInterface
                 }
             }
         }
+
         // work here to check if schema is already installed
-        PluginBundleBase::installPluginSchema($companyEventLogMetadata, $this->factory);
+        $this->pluginDatabase->installPluginSchema($companyEventLogMetadata);
     }
 }

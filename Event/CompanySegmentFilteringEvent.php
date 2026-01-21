@@ -29,7 +29,11 @@ class CompanySegmentFilteringEvent extends CommonEvent
         $this->em              = $entityManager;
         $this->isFilteringDone = false;
         $this->subQuery        = '';
-        $tableAlias            = $queryBuilder->getTableAlias(MAUTIC_TABLE_PREFIX.'companies');
+        $preTableName          = '';
+        if (is_string(MAUTIC_TABLE_PREFIX)) {
+            $preTableName = MAUTIC_TABLE_PREFIX;
+        }
+        $tableAlias            = $queryBuilder->getTableAlias($preTableName.'companies');
         \assert(is_string($tableAlias));
         $this->companiesTableAlias = $tableAlias;
     }
@@ -49,7 +53,12 @@ class CompanySegmentFilteringEvent extends CommonEvent
 
     public function getFunc(): string
     {
-        return $this->details->getArray()['operator'];
+        $detailsList = $this->details->getArray();
+        if (!array_key_exists('operator', $detailsList) || !is_string($detailsList['operator'])) {
+            return '';
+        }
+
+        return $detailsList['operator'];
     }
 
     public function getEntityManager(): EntityManagerInterface

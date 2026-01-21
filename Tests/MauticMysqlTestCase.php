@@ -13,6 +13,7 @@ use Symfony\Component\BrowserKit\Exception\BadMethodCallException;
 
 class MauticMysqlTestCase extends \Mautic\CoreBundle\Test\MauticMysqlTestCase
 {
+    use HelperCompanySegmentTestTrait;
     protected ?string $tmpDir = null;
     protected ?string $testHost;
     protected ?ReferenceRepository $fixtures = null;
@@ -94,6 +95,7 @@ class MauticMysqlTestCase extends \Mautic\CoreBundle\Test\MauticMysqlTestCase
         $executor = parent::loadFixtures($classNames, $append);
         \assert(null !== $executor);
         $this->fixtures = $executor->getReferenceRepository();
+        $this->loginAdminUser();
 
         return $executor;
     }

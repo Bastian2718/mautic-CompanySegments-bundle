@@ -46,7 +46,7 @@ class CompanySearchSubscriber implements EventSubscriberInterface
 
         $sq = (new QueryBuilder($this->connection));
         $sq->select('1')
-            ->from(MAUTIC_TABLE_PREFIX.CompaniesSegments::TABLE_NAME, CompaniesSegments::RELATIONS_NAME)
+            ->from($this->getPreTable().CompaniesSegments::TABLE_NAME, CompaniesSegments::RELATIONS_NAME)
             ->where(
                 $sq->expr()->and(
                     $sq->expr()->eq(
@@ -101,7 +101,7 @@ class CompanySearchSubscriber implements EventSubscriberInterface
     {
         $result = (new QueryBuilder($this->connection))
             ->select(CompanySegment::DEFAULT_ALIAS.'.id')
-            ->from(MAUTIC_TABLE_PREFIX.CompanySegment::TABLE_NAME, CompanySegment::DEFAULT_ALIAS)
+            ->from($this->getPreTable().CompanySegment::TABLE_NAME, CompanySegment::DEFAULT_ALIAS)
             ->where(CompanySegment::DEFAULT_ALIAS.'.alias = :alias')
             ->setParameter('alias', $segmentAlias)
             ->executeQuery()
@@ -117,5 +117,14 @@ class CompanySearchSubscriber implements EventSubscriberInterface
         }
 
         return $return;
+    }
+
+    private function getPreTable(): string
+    {
+        if (is_string(MAUTIC_TABLE_PREFIX)) {
+            return MAUTIC_TABLE_PREFIX;
+        }
+
+        return '';
     }
 }

@@ -33,6 +33,7 @@ class CircularDependencyValidator extends ConstraintValidator
             throw new UnexpectedTypeException($filters, 'array');
         }
 
+        /** @var array<array<mixed>> $filters */
         $dependentSegmentIds = $this->flatten(array_map(function ($id): array {
             if (!is_int($id)) {
                 $id = null;
@@ -80,9 +81,14 @@ class CircularDependencyValidator extends ConstraintValidator
         $segmentFilters = array_filter($filters, static fn (array $filter): bool => CompanySegmentModel::PROPERTIES_FIELD === $filter['type']
             && in_array($filter['operator'], [OperatorOptions::IN, OperatorOptions::NOT_IN], true));
 
+        /** @var array<array<mixed>> $segmentIdsInFilter */
         $segmentIdsInFilter = array_map(static function (array $filter) {
             $bcValue = $filter['filter'] ?? [];
+            if (is_array($filter['properties']) && !array_key_exists('filter', $filter['properties'])) {
+                return $bcValue;
+            }
 
+            /** @phpstan-ignore-next-line */
             return $filter['properties']['filter'] ?? $bcValue;
         }, $segmentFilters);
 
