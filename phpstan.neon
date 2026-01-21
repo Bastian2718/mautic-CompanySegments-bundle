@@ -76,3 +76,8 @@ parameters:
         - message: '#of method Doctrine\\DBAL\\Query\\Expression\\ExpressionBuilder::in#'
         - message: '#should be contravariant with parameter \$id#'
           path: Model/CompanySegmentModel.php
+        - message: '#Dynamic call to static method#'
+          path: Tests/Functional/EventListener/CompanySubscriberFunctionalTest.php
+        - message: "#has parameter \\$metadata with generic class Doctrine\\\\ORM\\\\Mapping\\\\ClassMetadata#"
+          count: 1
+          path: Entity/CompaniesPlaceholderLeads.php
