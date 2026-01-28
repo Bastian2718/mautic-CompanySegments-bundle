@@ -23,6 +23,9 @@ parameters:
         - message: "#has parameter \\$metadata with generic class Doctrine\\\\ORM\\\\Mapping\\\\ClassMetadata#"
           count: 1
           path: Entity/CompanyEventLog.php
+        - message: "#has parameter \\$metadata with generic class Doctrine\\\\ORM\\\\Mapping\\\\ClassMetadata#"
+          count: 1
+          path: Entity/CompaniesPlaceholderLeads.php
           ### below is added to base Mautic phpstan.neon ###
         - message: '##'
           path: rector.php
@@ -59,3 +62,5 @@ parameters:
           count: 1
           path: Model/CompanySegmentModel.php
           reportUnmatched: false
+        - message: '#Dynamic call to static method#'
+          path: Tests/Functional/EventListener/CompanySubscriberFunctionalTest.php
