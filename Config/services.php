@@ -45,4 +45,8 @@ return function (ContainerConfigurator $configurator): void {
 
     $services->set(MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Model\CompanyFieldModelDecorated::class)
         ->decorate(Mautic\LeadBundle\Model\FieldModel::class);
+
+    // Form type extension for adding company segments field to import form
+    $services->get(MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Form\Extension\LeadImportFieldTypeExtension::class)
+        ->tag('form.type_extension');
 };

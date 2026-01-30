@@ -1,0 +1,60 @@
+<?php
+
+declare(strict_types=1);
+
+namespace MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Form\Extension;
+
+use Mautic\LeadBundle\Form\Type\LeadImportFieldType;
+use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Form\Type\CompanySegmentListType;
+use Symfony\Component\Form\AbstractTypeExtension;
+use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Contracts\Translation\TranslatorInterface;
+
+/**
+ * Extends LeadImportFieldType to add company segments field for company imports.
+ */
+class LeadImportFieldTypeExtension extends AbstractTypeExtension
+{
+    public function __construct(
+        private TranslatorInterface $translator
+    ) {
+    }
+
+    public function buildForm(FormBuilderInterface $builder, array $options): void
+    {
+        // Only add field for company imports
+        if (!isset($options['object']) || 'company' !== $options['object']) {
+            return;
+        }
+
+        // Add company segments multi-select field
+        $builder->add(
+            'company_segments',
+            CompanySegmentListType::class,
+            [
+                'label'      => 'mautic.company_segments.form.import.segments',
+                'label_attr' => ['class' => 'control-label'],
+                'attr'       => [
+                    'class'            => 'form-control',
+                    'data-placeholder' => $this->translator->trans('mautic.company_segments.form.import.segments.placeholder'),
+                    'data-company-segments-import' => 'true',
+                ],
+                'required' => false,
+                'multiple' => true,
+            ]
+        );
+    }
+
+    public function configureOptions(OptionsResolver $resolver): void
+    {
+        // Ensure the 'object' option is available
+        $resolver->setDefined(['object']);
+    }
+
+    public static function getExtendedTypes(): iterable
+    {
+        // Specify which form type this extension applies to
+        return [LeadImportFieldType::class];
+    }
+}
