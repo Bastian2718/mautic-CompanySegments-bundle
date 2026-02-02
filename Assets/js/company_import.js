@@ -38,9 +38,8 @@
         } else {
             ownerContainer.parentNode.appendChild(fieldContainer);
         }
-
-        console.log('[CompanySegments] Field reordered!');
     }
+
 
     // Run on initial page load
     if (document.readyState === 'loading') {

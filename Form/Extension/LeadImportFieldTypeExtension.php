@@ -28,7 +28,6 @@ class LeadImportFieldTypeExtension extends AbstractTypeExtension
             return;
         }
 
-        // Add company segments multi-select field
         $builder->add(
             'company_segments',
             CompanySegmentListType::class,
@@ -42,6 +41,7 @@ class LeadImportFieldTypeExtension extends AbstractTypeExtension
                 ],
                 'required' => false,
                 'multiple' => true,
+                'mapped'   => false,
             ]
         );
     }
