@@ -124,9 +124,6 @@ final class ImportCompanySegmentSubscriber implements EventSubscriberInterface
         }
 
         $company = $event->getCompany();
-        if (!$company instanceof Company || null === $company->getId()) {
-            return;
-        }
 
         $import = $this->importModel->getEntity($this->activeImportId);
         if (null === $import || 'company' !== $import->getObject()) {
