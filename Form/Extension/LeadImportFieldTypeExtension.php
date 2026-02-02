@@ -24,7 +24,7 @@ class LeadImportFieldTypeExtension extends AbstractTypeExtension
     }
 
     /**
-     * @phpstan-param array $options
+     * @param array $options @phpstan-ignore-line
      */
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {

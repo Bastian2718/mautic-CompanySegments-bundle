@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace MauticPlugin\LeuchtfeuerCompanySegmentsBundle\EventListener;
 
-use Mautic\LeadBundle\Entity\Company;
 use Mautic\LeadBundle\Event\CompanyEvent;
 use Mautic\LeadBundle\Event\ImportEvent;
 use Mautic\LeadBundle\Event\ImportProcessEvent;
