@@ -163,7 +163,9 @@ final class ImportCompanySegmentSubscriberTest extends MauticMysqlTestCase
         $defaults = $import->getDefaults();
         Assert::assertArrayHasKey('company_segments', $defaults);
         Assert::assertNotNull($this->segment1);
-        Assert::assertContains($this->segment1->getId(), $defaults['company_segments']);
+        $segmentIds = json_decode($defaults['company_segments'], true);
+        Assert::assertIsArray($segmentIds);
+        Assert::assertContains($this->segment1->getId(), $segmentIds);
 
         $commandTester = $this->testSymfonyCommand('mautic:import', [
             '-i'      => $import->getId(),

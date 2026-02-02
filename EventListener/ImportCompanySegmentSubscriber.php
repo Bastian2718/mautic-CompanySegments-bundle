@@ -58,17 +58,17 @@ final class ImportCompanySegmentSubscriber implements EventSubscriberInterface
         }
 
         $companySegments = $form->get('company_segments')->getData();
-        if (!$companySegments || !is_array($companySegments)) {
+        if (!is_array($companySegments) || [] === $companySegments) {
             return;
         }
 
         $segmentIds = array_map(
-            fn ($segment) => $segment instanceof CompanySegment ? $segment->getId() : (int) $segment,
+            fn ($segment): ?int => $segment instanceof CompanySegment ? $segment->getId() : (int) $segment,
             $companySegments
         );
 
         $request = $this->requestStack->getCurrentRequest();
-        if ($request?->hasSession()) {
+        if (null !== $request && true === $request->hasSession()) {
             $request->getSession()->set('mautic.company.import.segments.temp', $segmentIds);
         }
     }
@@ -85,20 +85,20 @@ final class ImportCompanySegmentSubscriber implements EventSubscriberInterface
         }
 
         $request = $this->requestStack->getCurrentRequest();
-        if (!$request?->hasSession()) {
+        if (null === $request || false === $request->hasSession()) {
             return;
         }
 
         $session  = $request->getSession();
         $segments = $session->get('mautic.company.import.segments.temp');
 
-        if (!$segments || !is_array($segments)) {
+        if (!is_array($segments) || [] === $segments) {
             return;
         }
 
         $session->remove('mautic.company.import.segments.temp');
 
-        $import->setDefault('company_segments', $segments);
+        $import->setDefault('company_segments', json_encode($segments));
         $this->importModel->saveEntity($import, false);
     }
 
@@ -124,17 +124,22 @@ final class ImportCompanySegmentSubscriber implements EventSubscriberInterface
         }
 
         $company = $event->getCompany();
-        if (!$company instanceof Company || !$company->getId()) {
+        if (!$company instanceof Company || null === $company->getId()) {
             return;
         }
 
         $import = $this->importModel->getEntity($this->activeImportId);
-        if (!$import || 'company' !== $import->getObject()) {
+        if (null === $import || 'company' !== $import->getObject()) {
             return;
         }
 
-        $segmentIds = $import->getDefault('company_segments');
-        if (empty($segmentIds) || !is_array($segmentIds)) {
+        $segmentIdsJson = $import->getDefault('company_segments');
+        if (null === $segmentIdsJson || '' === $segmentIdsJson) {
+            return;
+        }
+
+        $segmentIds = json_decode($segmentIdsJson, true);
+        if (!is_array($segmentIds) || [] === $segmentIds) {
             return;
         }
 

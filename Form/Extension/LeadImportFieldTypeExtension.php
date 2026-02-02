@@ -23,6 +23,9 @@ class LeadImportFieldTypeExtension extends AbstractTypeExtension
     ) {
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         if (!$this->config->isPublished()) {
