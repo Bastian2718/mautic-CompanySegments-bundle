@@ -6,6 +6,7 @@ namespace MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Form\Extension;
 
 use Mautic\LeadBundle\Form\Type\LeadImportFieldType;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Form\Type\CompanySegmentListType;
+use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Integration\Config;
 use Symfony\Component\Form\AbstractTypeExtension;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -17,12 +18,17 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 class LeadImportFieldTypeExtension extends AbstractTypeExtension
 {
     public function __construct(
-        private TranslatorInterface $translator
+        private TranslatorInterface $translator,
+        private Config $config,
     ) {
     }
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        if (!$this->config->isPublished()) {
+            return;
+        }
+
         // Only add field for company imports
         if (!isset($options['object']) || 'company' !== $options['object']) {
             return;

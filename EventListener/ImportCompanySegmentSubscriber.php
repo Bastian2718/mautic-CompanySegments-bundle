@@ -11,6 +11,8 @@ use Mautic\LeadBundle\Event\ImportProcessEvent;
 use Mautic\LeadBundle\Event\ImportValidateEvent;
 use Mautic\LeadBundle\LeadEvents;
 use Mautic\LeadBundle\Model\ImportModel;
+use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompanySegment;
+use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Integration\Config;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Model\CompanySegmentModel;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -26,6 +28,7 @@ final class ImportCompanySegmentSubscriber implements EventSubscriberInterface
         private CompanySegmentModel $companySegmentModel,
         private ImportModel $importModel,
         private RequestStack $requestStack,
+        private Config $config,
     ) {
     }
 
@@ -41,6 +44,10 @@ final class ImportCompanySegmentSubscriber implements EventSubscriberInterface
 
     public function onValidateImport(ImportValidateEvent $event): void
     {
+        if (!$this->config->isPublished()) {
+            return;
+        }
+
         if (!$event->importIsForRouteObject('companies')) {
             return;
         }
@@ -56,7 +63,7 @@ final class ImportCompanySegmentSubscriber implements EventSubscriberInterface
         }
 
         $segmentIds = array_map(
-            fn ($segment) => is_object($segment) ? $segment->getId() : (int) $segment,
+            fn ($segment) => $segment instanceof CompanySegment ? $segment->getId() : (int) $segment,
             $companySegments
         );
 
@@ -69,6 +76,10 @@ final class ImportCompanySegmentSubscriber implements EventSubscriberInterface
 
     public function onImportPostSave(ImportEvent $event): void
     {
+        if (!$this->config->isPublished()) {
+            return;
+        }
+
         $import = $event->getEntity();
         if ('company' !== $import->getObject()) {
             return;
@@ -94,6 +105,10 @@ final class ImportCompanySegmentSubscriber implements EventSubscriberInterface
 
     public function onImportProcess(ImportProcessEvent $event): void
     {
+        if (!$this->config->isPublished()) {
+            return;
+        }
+
         if ($event->importIsForObject('company')) {
             $this->activeImportId = $event->import->getId();
         }
@@ -101,6 +116,10 @@ final class ImportCompanySegmentSubscriber implements EventSubscriberInterface
 
     public function onCompanyPostSave(CompanyEvent $event): void
     {
+        if (!$this->config->isPublished()) {
+            return;
+        }
+
         if (null === $this->activeImportId) {
             return;
         }
