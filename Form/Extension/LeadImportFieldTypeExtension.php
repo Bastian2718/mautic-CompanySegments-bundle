@@ -41,8 +41,8 @@ class LeadImportFieldTypeExtension extends AbstractTypeExtension
                 'label'      => 'mautic.company_segments.form.import.segments',
                 'label_attr' => ['class' => 'control-label'],
                 'attr'       => [
-                    'class'            => 'form-control',
-                    'data-placeholder' => $this->translator->trans('mautic.company_segments.form.import.segments.placeholder'),
+                    'class'                        => 'form-control',
+                    'data-placeholder'             => $this->translator->trans('mautic.company_segments.form.import.segments.placeholder'),
                     'data-company-segments-import' => 'true',
                 ],
                 'required' => false,

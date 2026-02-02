@@ -73,7 +73,6 @@ final class ImportCompanySegmentSubscriber implements EventSubscriberInterface
         }
     }
 
-
     public function onImportPostSave(ImportEvent $event): void
     {
         if (!$this->config->isPublished()) {
@@ -90,7 +89,7 @@ final class ImportCompanySegmentSubscriber implements EventSubscriberInterface
             return;
         }
 
-        $session = $request->getSession();
+        $session  = $request->getSession();
         $segments = $session->get('mautic.company.import.segments.temp');
 
         if (!$segments || !is_array($segments)) {
