@@ -96,8 +96,7 @@ final class ImportCompanySegmentSubscriber implements EventSubscriberInterface
         }
 
         $session->remove('mautic.company.import.segments.temp');
-
-        $import->setDefault('company_segments', json_encode($segments));
+        $import->mergeToProperties(['company_segments' => $segments]);
         $this->importModel->saveEntity($import, false);
     }
 
@@ -129,13 +128,18 @@ final class ImportCompanySegmentSubscriber implements EventSubscriberInterface
             return;
         }
 
-        $segmentIdsJson = $import->getDefault('company_segments');
-        if (null === $segmentIdsJson || '' === $segmentIdsJson) {
+        $properties = $import->getProperties();
+        if (!isset($properties['company_segments']) || !is_array($properties['company_segments'])) {
             return;
         }
 
-        $segmentIds = json_decode($segmentIdsJson, true);
-        if (!is_array($segmentIds) || [] === $segmentIds) {
+        /** @var array<int|string> $segmentIds */
+        $segmentIds = array_values(array_filter(
+            $properties['company_segments'],
+            fn ($value): bool => is_int($value) || is_string($value)
+        ));
+
+        if ([] === $segmentIds) {
             return;
         }
 

@@ -160,10 +160,10 @@ final class ImportCompanySegmentSubscriberTest extends MauticMysqlTestCase
         Assert::assertNotNull($import, 'Import should be queued');
         Assert::assertEquals(Import::QUEUED, $import->getStatus(), 'Import should be queued');
 
-        $defaults = $import->getDefaults();
-        Assert::assertArrayHasKey('company_segments', $defaults);
+        $properties = $import->getProperties();
+        Assert::assertArrayHasKey('company_segments', $properties);
         Assert::assertNotNull($this->segment1);
-        $segmentIds = json_decode($defaults['company_segments'], true);
+        $segmentIds = $properties['company_segments'];
         Assert::assertIsArray($segmentIds);
         Assert::assertContains($this->segment1->getId(), $segmentIds);
 
