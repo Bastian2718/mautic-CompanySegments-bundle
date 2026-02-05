@@ -59,7 +59,7 @@ Event Log is created for each Segment updated in the Company Segments view.
 
 Audit log is created for each Company Segment created, updated or deleted.
 
-Placeholder contacts: If a company is created, a "placeholder" contact is created with the same contact data. This can be used to contact and handle a company using Mautic campaigns. When company data is changed, that will reflect to the placeholder contact. Changes directly to the placeholder contact are not supported and will be overwritten.
+Placeholder contacts (if enabled in the plugin config): When a company is created, a "placeholder" contact is created with the same contact data. This can be used to contact and handle a company using Mautic campaigns. When company data is changed, that will reflect to the placeholder contact. Changes directly to the placeholder contact are not supported and will be overwritten.
 
 ## API
 
