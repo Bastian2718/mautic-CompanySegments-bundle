@@ -7,8 +7,10 @@ namespace MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Integration;
 use Mautic\IntegrationsBundle\Integration\BasicIntegration;
 use Mautic\IntegrationsBundle\Integration\ConfigurationTrait;
 use Mautic\IntegrationsBundle\Integration\Interfaces\BasicInterface;
+use Mautic\IntegrationsBundle\Integration\Interfaces\ConfigFormFeatureSettingsInterface;
+use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Form\Type\CompanySegmentsFeatureSettingsType;
 
-class LeuchtfeuerCompanySegmentsIntegration extends BasicIntegration implements BasicInterface
+class LeuchtfeuerCompanySegmentsIntegration extends BasicIntegration implements BasicInterface, ConfigFormFeatureSettingsInterface
 {
     use ConfigurationTrait;
 
@@ -28,5 +30,10 @@ class LeuchtfeuerCompanySegmentsIntegration extends BasicIntegration implements 
     public function getIcon(): string
     {
         return 'plugins/LeuchtfeuerCompanySegmentsBundle/Assets/img/Mautic-Company-Segments.png';
+    }
+
+    public function getFeatureSettingsConfigFormName(): string
+    {
+        return CompanySegmentsFeatureSettingsType::class;
     }
 }
