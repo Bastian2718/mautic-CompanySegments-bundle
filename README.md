@@ -98,6 +98,7 @@ and
 ## Future Ideas
 * MAYBE: Manual modification of Segments from Company list view without bulk action
 * Reflect placeholder contact changes in audit log and timeline.
+* Company / CompanySegment permissions
 
 ## Credits
 * @biozshock
