@@ -11,6 +11,8 @@ use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Form\Type\CompanySegmentListTy
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Integration\Config;
 use Symfony\Component\Form\AbstractTypeExtension;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 class CompanyTypeExtension extends AbstractTypeExtension
@@ -40,7 +42,7 @@ class CompanyTypeExtension extends AbstractTypeExtension
             'company_segments',
             CompanySegmentListType::class,
             [
-                'label'      => 'mautic.company_segments.form.segments',
+                'label'      => 'mautic.company_segments.menu.index',
                 'label_attr' => ['class' => 'control-label'],
                 'attr'       => [
                     'class'                         => 'form-control',
