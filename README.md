@@ -96,16 +96,18 @@ and
 * An exception occurs when cancelling the creation of a new Segment
 
 ## Future Ideas
-* Manual modification of Segments from Company detail view
-* Manual modification of Segments from Company list view without bulk action
-* Show Company Segments in Company Detail View as "Bubbles"
+* MAYBE: Manual modification of Segments from Company list view without bulk action
 * Reflect placeholder contact changes in audit log and timeline.
 
 ## Credits
 * @biozshock
-* @lenonleite
 * @ekkeguembel
 * @JonasLudwig1998
+* @lenonleite
+* @LeonOltmanns
+* @MadlenF
+* @PatrickJenkner
+* @patrykgruszka
 
 ## Author and Contact
 Leuchtfeuer Digital Marketing GmbH
