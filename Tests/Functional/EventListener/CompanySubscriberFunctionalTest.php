@@ -190,6 +190,10 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
 
     public function testAddToAndRemoveFromSegmentsViaCompanyForm(): void
     {
+        if (!class_exists(\Mautic\CoreBundle\Cache\ResultCacheOptions::class)) {
+            $this->markTestSkipped('This test requires Mautic 5.1+ (ResultCacheOptions class)');
+        }
+
         $company  = $this->createCompany('Test Company');
         $segment1 = $this->createCompanySegment('Segment 1', 'segment-1');
         $segment2 = $this->createCompanySegment('Segment 2', 'segment-2');
