@@ -96,16 +96,16 @@ class CompanySubscriber implements EventSubscriberInterface
 
         $currentSegments   = $this->companiesSegmentsRepository->getByCompany($company);
         $currentSegmentIds = array_values(array_filter(
-            array_map(fn ($cs) => $cs->getCompanySegment()->getId(), $currentSegments)
+            array_map(fn ($cs): ?int => $cs->getCompanySegment()->getId(), $currentSegments)
         ));
         $segmentsToAdd    = array_values(array_diff($selectedSegmentIds, $currentSegmentIds));
         $segmentsToRemove = array_values(array_diff($currentSegmentIds, $selectedSegmentIds));
 
-        if (!empty($segmentsToAdd)) {
+        if ([] !== $segmentsToAdd) {
             $this->companySegmentModel->addCompany($company, $segmentsToAdd, true);
         }
 
-        if (!empty($segmentsToRemove)) {
+        if ([] !== $segmentsToRemove) {
             $this->companySegmentModel->removeCompany($company, $segmentsToRemove, true);
         }
     }

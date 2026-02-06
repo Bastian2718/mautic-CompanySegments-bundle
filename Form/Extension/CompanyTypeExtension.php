@@ -22,6 +22,7 @@ class CompanyTypeExtension extends AbstractTypeExtension
     ) {
     }
 
+    /** @phpstan-ignore-next-line */
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         if (!$this->config->isPublished()) {
