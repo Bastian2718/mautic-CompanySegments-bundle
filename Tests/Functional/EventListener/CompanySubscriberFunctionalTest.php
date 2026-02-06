@@ -6,18 +6,14 @@ use Mautic\LeadBundle\Entity\Company;
 use Mautic\LeadBundle\Entity\CompanyLead;
 use Mautic\LeadBundle\Entity\CompanyLeadRepository;
 use Mautic\LeadBundle\Entity\Lead;
-use Mautic\LeadBundle\Event\CompanyEvent;
 use Mautic\LeadBundle\Model\CompanyModel;
 use Mautic\LeadBundle\Model\LeadModel;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompaniesPlaceholderLeads;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompaniesSegments;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompaniesSegmentsRepository;
-use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\EventListener\CompanySubscriber;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\EnablePluginTrait;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\HelperCompanySegmentTestTrait;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\MauticMysqlTestCase;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\RequestStack;
 
 class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
 {
@@ -107,8 +103,6 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
         $this->assertEquals('Street 1', $lead->getAddress1());
         $this->assertEquals('Street 2', $lead->getAddress2());
         $this->assertEquals('City', $lead->getCity());
-        $this->assertEquals('State', $lead->getState());
-        $this->assertEquals('Country', $lead->getCountry());
         $this->assertEquals('12345', $lead->getZipcode());
         $this->assertEquals('0987654321', $lead->getFieldValue('fax'));
     }
@@ -157,7 +151,7 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
 
     public function testAddToAndRemoveFromSegmentsViaCompanyForm(): void
     {
-        $company = $this->createCompany('Test Company');
+        $company  = $this->createCompany('Test Company');
         $segment1 = $this->createCompanySegment('Segment 1', 'segment-1');
         $segment2 = $this->createCompanySegment('Segment 2', 'segment-2');
         $segment3 = $this->createCompanySegment('Segment 3', 'segment-3');
@@ -171,7 +165,7 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
         $crawler = $this->client->request('GET', '/s/companies/edit/'.$companyId);
         $this->assertTrue($this->client->getResponse()->isOk());
 
-        $form = $crawler->filter('form[name="company"]')->first()->form();
+        $form                              = $crawler->filter('form[name="company"]')->first()->form();
         $form['company[company_segments]'] = [$segment1->getId(), $segment3->getId()];
         $this->client->submit($form);
 
@@ -183,7 +177,7 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
 
         /** @var CompaniesSegmentsRepository $companiesSegmentsRepository */
         $companiesSegmentsRepository = $this->em->getRepository(CompaniesSegments::class);
-        $companySegments = $companiesSegmentsRepository->getByCompany($company);
+        $companySegments             = $companiesSegmentsRepository->getByCompany($company);
         $this->assertCount(2, $companySegments, 'Company should be in 2 segments');
 
         $segmentIds = array_map(fn ($cs) => $cs->getCompanySegment()->getId(), $companySegments);

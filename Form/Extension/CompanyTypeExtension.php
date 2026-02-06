@@ -11,8 +11,6 @@ use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Form\Type\CompanySegmentListTy
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Integration\Config;
 use Symfony\Component\Form\AbstractTypeExtension;
 use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\Form\FormEvent;
-use Symfony\Component\Form\FormEvents;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 class CompanyTypeExtension extends AbstractTypeExtension
@@ -30,12 +28,12 @@ class CompanyTypeExtension extends AbstractTypeExtension
             return;
         }
 
-        $company = $options['data'] ?? null;
+        $company         = $options['data'] ?? null;
         $currentSegments = [];
 
         if ($company instanceof Company && null !== $company->getId()) {
             $companiesSegments = $this->companiesSegmentsRepository->getByCompany($company);
-            $currentSegments = array_map(fn($cs) => $cs->getCompanySegment()->getId(), $companiesSegments);
+            $currentSegments   = array_map(fn ($cs) => $cs->getCompanySegment()->getId(), $companiesSegments);
         }
 
         $builder->add(
