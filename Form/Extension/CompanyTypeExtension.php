@@ -34,7 +34,7 @@ class CompanyTypeExtension extends AbstractTypeExtension
 
         if ($company instanceof Company && null !== $company->getId()) {
             $companiesSegments = $this->companiesSegmentsRepository->getByCompany($company);
-            $currentSegments   = array_map(fn ($cs) => $cs->getCompanySegment()->getId(), $companiesSegments);
+            $currentSegments   = array_map(fn ($cs): ?int => $cs->getCompanySegment()->getId(), $companiesSegments);
         }
 
         $builder->add(

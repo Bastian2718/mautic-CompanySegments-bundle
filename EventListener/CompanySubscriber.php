@@ -84,9 +84,6 @@ class CompanySubscriber implements EventSubscriberInterface
         }
 
         $company = $event->getCompany();
-        if (null === $company->getId()) {
-            return;
-        }
 
         $selectedSegmentIds = $companyData['company_segments'];
         if (!is_array($selectedSegmentIds)) {
