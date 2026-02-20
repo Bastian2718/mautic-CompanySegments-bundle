@@ -11,7 +11,7 @@ use Symfony\Component\Form\FormBuilderInterface;
 
 class CompanySegmentsFeatureSettingsType extends AbstractType
 {
-    private ?bool $createPlaceholderContact;
+    private bool $createPlaceholderContact;
 
     public function __construct(private Config $config)
     {
