@@ -133,6 +133,7 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
     private function assertFieldsSetCorrectlyForPlaceholderLead(Lead $lead, string $email): void
     {
         $this->assertEquals('abc', $lead->getFirstname());
+        $this->assertEquals('[PLACEHOLDER]', $lead->getLastname());
         $this->assertEquals($email, $lead->getEmail());
         $this->assertEquals('1234567890', $lead->getPhone());
         $this->assertEquals('Street 1', $lead->getAddress1());
