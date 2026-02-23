@@ -11,8 +11,11 @@ use Mautic\LeadBundle\LeadEvents;
 use Mautic\LeadBundle\Model\LeadModel;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompaniesPlaceholderLeads;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompaniesPlaceholderLeadsRepository;
+use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompaniesSegmentsRepository;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Integration\Config;
+use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Model\CompanySegmentModel;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 class CompanySubscriber implements EventSubscriberInterface
 {
@@ -22,13 +25,19 @@ class CompanySubscriber implements EventSubscriberInterface
         private EntityManagerInterface $entityManager,
         private LeadModel $leadModel,
         private Config $config,
+        private CompanySegmentModel $companySegmentModel,
+        private CompaniesSegmentsRepository $companiesSegmentsRepository,
+        private RequestStack $requestStack,
     ) {
     }
 
     public static function getSubscribedEvents(): array
     {
         return [
-            LeadEvents::COMPANY_POST_SAVE  => ['onCompanyPostSave', 0],
+            LeadEvents::COMPANY_POST_SAVE  => [
+                ['onCompanyPostSave', 0],
+                ['onCompanyPostSaveSegments', -10],
+            ],
             LeadEvents::COMPANY_PRE_DELETE => ['onCompanyPreDelete', 0],
         ];
     }
@@ -55,6 +64,46 @@ class CompanySubscriber implements EventSubscriberInterface
         $companyEmail    = $this->getEmailAddressForPlaceholderLead($company);
         $placeholderLead = $this->createPlaceholderLead($company, $companyEmail);
         $this->createCompaniesPlaceholderLeadsEntry($company, $placeholderLead);
+    }
+
+    public function onCompanyPostSaveSegments(CompanyEvent $event): void
+    {
+        if (!$this->config->isPublished()) {
+            return;
+        }
+
+        $request = $this->requestStack->getCurrentRequest();
+        if (null === $request) {
+            return;
+        }
+
+        $companyData = $request->request->all('company');
+        // Exit if we don't come from the edit company from
+        if (!isset($companyData['company_segments_form_marker'])) {
+            return;
+        }
+
+        $company = $event->getCompany();
+        $selectedSegmentIds = $companyData['company_segments'] ?? [];
+        if (!is_array($selectedSegmentIds)) {
+            $selectedSegmentIds = [];
+        }
+        $selectedSegmentIds = array_filter(array_map('intval', $selectedSegmentIds));
+
+        $currentSegments   = $this->companiesSegmentsRepository->getByCompany($company);
+        $currentSegmentIds = array_values(array_filter(
+            array_map(fn ($cs): ?int => $cs->getCompanySegment()->getId(), $currentSegments)
+        ));
+        $segmentsToAdd    = array_values(array_diff($selectedSegmentIds, $currentSegmentIds));
+        $segmentsToRemove = array_values(array_diff($currentSegmentIds, $selectedSegmentIds));
+
+        if ([] !== $segmentsToAdd) {
+            $this->companySegmentModel->addCompany($company, $segmentsToAdd, true);
+        }
+
+        if ([] !== $segmentsToRemove) {
+            $this->companySegmentModel->removeCompany($company, $segmentsToRemove, true);
+        }
     }
 
     private function createPlaceholderLead(Company $company, ?string $email): Lead
