@@ -77,15 +77,14 @@ class CompanySubscriber implements EventSubscriberInterface
             return;
         }
 
-        // Check if this is a company form submission
         $companyData = $request->request->all('company');
-        if (!isset($companyData['company_segments'])) {
+        // Exit if we don't come from the edit company from
+        if (!isset($companyData['company_segments_form_marker'])) {
             return;
         }
 
-        $company = $event->getCompany();
-
-        $selectedSegmentIds = $companyData['company_segments'];
+        $company            = $event->getCompany();
+        $selectedSegmentIds = $companyData['company_segments'] ?? [];
         if (!is_array($selectedSegmentIds)) {
             $selectedSegmentIds = [];
         }

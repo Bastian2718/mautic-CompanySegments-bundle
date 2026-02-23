@@ -10,6 +10,7 @@ use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompaniesSegmentsReposi
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Form\Type\CompanySegmentListType;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Integration\Config;
 use Symfony\Component\Form\AbstractTypeExtension;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -25,16 +26,26 @@ class CompanyTypeExtension extends AbstractTypeExtension
     /** @phpstan-ignore-next-line */
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        if (!$this->config->isPublished()) {
-            return;
-        }
-
         $company         = $options['data'] ?? null;
         $currentSegments = [];
 
         if ($company instanceof Company && null !== $company->getId()) {
             $companiesSegments = $this->companiesSegmentsRepository->getByCompany($company);
             $currentSegments   = array_map(fn ($cs): ?int => $cs->getCompanySegment()->getId(), $companiesSegments);
+        }
+
+        // Hidden marker field to detect when company form with segments is submitted
+        $builder->add(
+            'company_segments_form_marker',
+            HiddenType::class,
+            [
+                'mapped' => false,
+                'data'   => '1',
+            ]
+        );
+
+        if (!$this->config->isPublished()) {
+            return;
         }
 
         $builder->add(

@@ -228,4 +228,42 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
         $this->assertNotContains($segment2->getId(), $segmentIds, 'Company should be removed from segment 2');
         $this->assertContains($segment3->getId(), $segmentIds, 'Company should be added to segment 3');
     }
+
+    public function testRemoveAllSegmentsViaCompanyForm(): void
+    {
+        if (!class_exists(\Mautic\CoreBundle\Cache\ResultCacheOptions::class)) {
+            $this->markTestSkipped('This test requires Mautic 5.1+ (ResultCacheOptions class)');
+        }
+
+        $company  = $this->createCompany('Test Company');
+        $segment1 = $this->createCompanySegment('Segment 1', 'segment-1');
+        $segment2 = $this->createCompanySegment('Segment 2', 'segment-2');
+
+        $this->addCompanyToCompanySegment($company, $segment1);
+        $this->addCompanyToCompanySegment($company, $segment2);
+
+        $companyId = $company->getId();
+        $this->em->clear();
+
+        $company                     = $this->em->getRepository(Company::class)->find($companyId);
+        $companiesSegmentsRepository = $this->em->getRepository(CompaniesSegments::class);
+        $companySegments             = $companiesSegmentsRepository->getByCompany($company);
+        $this->assertCount(2, $companySegments, 'Company should initially be in 2 segments');
+
+        $crawler = $this->client->request('GET', '/s/companies/edit/'.$companyId);
+        $this->assertTrue($this->client->getResponse()->isOk());
+
+        $form                              = $crawler->filter('form[name="company"]')->first()->form();
+        $form['company[company_segments]'] = []; // Empty array - remove all segments
+        $this->client->submit($form);
+
+        $this->assertTrue($this->client->getResponse()->isSuccessful());
+        $this->em->clear();
+
+        $company         = $this->em->getRepository(Company::class)->find($companyId);
+        $this->assertNotNull($company);
+
+        $companySegments = $companiesSegmentsRepository->getByCompany($company);
+        $this->assertCount(0, $companySegments, 'Company should have no segments after removing all');
+    }
 }
