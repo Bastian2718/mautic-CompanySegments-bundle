@@ -246,6 +246,7 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
         $this->em->clear();
 
         $company = $this->em->getRepository(Company::class)->find($companyId);
+        $this->assertNotNull($company);
         /** @var CompaniesSegmentsRepository $companiesSegmentsRepository */
         $companiesSegmentsRepository = $this->em->getRepository(CompaniesSegments::class);
         $companySegments             = $companiesSegmentsRepository->getByCompany($company);
