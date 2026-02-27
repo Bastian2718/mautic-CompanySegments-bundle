@@ -4,6 +4,7 @@ on:
     branches:
       - master
       - 'MTC\-[0-9]+'
+      -  'mautic5-support'
       - 'MTC\-upkeep\-[0-9]+'
   pull_request:
 
