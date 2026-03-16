@@ -84,4 +84,17 @@ class CompaniesSegmentsRepository extends CommonRepository
 
         return array_values(array_unique($result, SORT_REGULAR));
     }
+
+    /**
+     * Get CompaniesSegments entities for a company (excluding manually removed).
+     *
+     * @return CompaniesSegments[]
+     */
+    public function getByCompany(\Mautic\LeadBundle\Entity\Company $company): array
+    {
+        return $this->findBy([
+            'company'         => $company,
+            'manuallyRemoved' => false,
+        ]);
+    }
 }

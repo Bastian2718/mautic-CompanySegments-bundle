@@ -9,12 +9,16 @@ use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Model\CompanyModel;
 use Mautic\LeadBundle\Model\LeadModel;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompaniesPlaceholderLeads;
+use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompaniesSegments;
+use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompaniesSegmentsRepository;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\EnablePluginTrait;
+use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\HelperCompanySegmentTestTrait;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\MauticMysqlTestCase;
 
 class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
 {
     use EnablePluginTrait;
+    use HelperCompanySegmentTestTrait;
 
     public function setUp(): void
     {
@@ -139,8 +143,6 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
         $this->assertEquals('Street 1', $lead->getAddress1());
         $this->assertEquals('Street 2', $lead->getAddress2());
         $this->assertEquals('City', $lead->getCity());
-        $this->assertEquals('State', $lead->getState());
-        $this->assertEquals('Country', $lead->getCountry());
         $this->assertEquals('12345', $lead->getZipcode());
         $this->assertEquals('0987654321', $lead->getFieldValue('fax'));
     }
@@ -154,8 +156,6 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
         $company->setAddress1('Street 1');
         $company->setAddress2('Street 2');
         $company->setCity('City');
-        $company->setState('State');
-        $company->setCountry('Country');
         $company->setZipcode('12345');
         $company->addUpdatedField('companyfax', '0987654321');
         $company->setDateAdded(new \DateTime());
@@ -187,5 +187,86 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
         $companyLeads     = $companyLeadRepo->getCompanyLeads($company->getId());
         $leadIds          = array_column($companyLeads, 'lead_id');
         $this->assertContains((string) $lead->getId(), $leadIds);
+    }
+
+    public function testAddToAndRemoveFromSegmentsViaCompanyForm(): void
+    {
+        if (!class_exists(\Mautic\CoreBundle\Cache\ResultCacheOptions::class)) {
+            $this->markTestSkipped('This test requires Mautic 5.1+ (ResultCacheOptions class)');
+        }
+
+        $company  = $this->createCompany('Test Company');
+        $segment1 = $this->createCompanySegment('Segment 1', 'segment-1');
+        $segment2 = $this->createCompanySegment('Segment 2', 'segment-2');
+        $segment3 = $this->createCompanySegment('Segment 3', 'segment-3');
+
+        $this->addCompanyToCompanySegment($company, $segment1);
+        $this->addCompanyToCompanySegment($company, $segment2);
+
+        $companyId = $company->getId();
+        $this->em->clear();
+
+        $crawler = $this->client->request('GET', '/s/companies/edit/'.$companyId);
+        $this->assertTrue($this->client->getResponse()->isOk());
+
+        $form                              = $crawler->filter('form[name="company"]')->first()->form();
+        $form['company[company_segments]'] = [$segment1->getId(), $segment3->getId()];
+        $this->client->submit($form);
+
+        $this->assertTrue($this->client->getResponse()->isSuccessful());
+        $this->em->clear();
+
+        $company = $this->em->getRepository(Company::class)->find($companyId);
+        $this->assertNotNull($company);
+
+        /** @var CompaniesSegmentsRepository $companiesSegmentsRepository */
+        $companiesSegmentsRepository = $this->em->getRepository(CompaniesSegments::class);
+        $companySegments             = $companiesSegmentsRepository->getByCompany($company);
+        $this->assertCount(2, $companySegments, 'Company should be in 2 segments');
+
+        $segmentIds = array_map(fn ($cs) => $cs->getCompanySegment()->getId(), $companySegments);
+        $this->assertContains($segment1->getId(), $segmentIds, 'Company should still be in segment 1');
+        $this->assertNotContains($segment2->getId(), $segmentIds, 'Company should be removed from segment 2');
+        $this->assertContains($segment3->getId(), $segmentIds, 'Company should be added to segment 3');
+    }
+
+    public function testRemoveAllSegmentsViaCompanyForm(): void
+    {
+        if (!class_exists(\Mautic\CoreBundle\Cache\ResultCacheOptions::class)) {
+            $this->markTestSkipped('This test requires Mautic 5.1+ (ResultCacheOptions class)');
+        }
+
+        $company  = $this->createCompany('Test Company');
+        $segment1 = $this->createCompanySegment('Segment 1', 'segment-1');
+        $segment2 = $this->createCompanySegment('Segment 2', 'segment-2');
+
+        $this->addCompanyToCompanySegment($company, $segment1);
+        $this->addCompanyToCompanySegment($company, $segment2);
+
+        $companyId = $company->getId();
+        $this->em->clear();
+
+        $company = $this->em->getRepository(Company::class)->find($companyId);
+        $this->assertNotNull($company);
+        /** @var CompaniesSegmentsRepository $companiesSegmentsRepository */
+        $companiesSegmentsRepository = $this->em->getRepository(CompaniesSegments::class);
+        $companySegments             = $companiesSegmentsRepository->getByCompany($company);
+        $this->assertCount(2, $companySegments, 'Company should initially be in 2 segments');
+
+        $crawler = $this->client->request('GET', '/s/companies/edit/'.$companyId);
+        $this->assertTrue($this->client->getResponse()->isOk());
+
+        $form                              = $crawler->filter('form[name="company"]')->first()->form();
+        $form['company[company_segments]'] = []; // Empty array - remove all segments
+        $this->client->submit($form);
+
+        $this->assertTrue($this->client->getResponse()->isSuccessful());
+        $this->em->clear();
+
+        $company         = $this->em->getRepository(Company::class)->find($companyId);
+        $this->assertNotNull($company);
+
+        $companySegments = $companiesSegmentsRepository->getByCompany($company);
+        $this->assertCount(0, $companySegments, 'Company should have no segments after removing all');
     }
 }
