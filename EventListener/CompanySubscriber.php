@@ -68,6 +68,7 @@ class CompanySubscriber implements EventSubscriberInterface
     private function updatePlaceholderLead(Lead $lead, Company $company, ?string $email = null): Lead
     {
         $lead->setFirstname($company->getName());
+        $lead->setLastname('[PLACEHOLDER]');
         $lead->setEmail($email ?? $company->getEmail() ?? '');
         $lead->setAddress1($company->getAddress1() ?? '');
         $lead->setAddress2($company->getAddress2() ?? '');
