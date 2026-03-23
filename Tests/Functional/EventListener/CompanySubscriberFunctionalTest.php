@@ -122,6 +122,8 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
 
         $this->em->persist($integrationEntity);
         $this->em->flush();
+    }
+    
     public function testAddToAndRemoveFromSegmentsViaCompanyForm(): void
     {
         if (!class_exists(\Mautic\CoreBundle\Cache\ResultCacheOptions::class)) {
