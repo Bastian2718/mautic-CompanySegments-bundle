@@ -34,4 +34,23 @@ class Config
 
         return $integrationObject->getIntegrationConfiguration();
     }
+
+    public function getCreatePlaceholderContact(): bool
+    {
+        try {
+            $integration     = $this->getIntegrationEntity();
+            $featureSettings = $integration->getFeatureSettings();
+
+            if (!is_array($featureSettings)
+                || !isset($featureSettings['integration'])
+                || !is_array($featureSettings['integration'])
+                || !isset($featureSettings['integration']['create_placeholder_contact'])) {
+                return true;
+            }
+
+            return (bool) $featureSettings['integration']['create_placeholder_contact'];
+        } catch (IntegrationNotFoundException) {
+            return true;
+        }
+    }
 }

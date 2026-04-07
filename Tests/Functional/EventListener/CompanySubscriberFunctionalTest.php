@@ -85,6 +85,45 @@ class CompanySubscriberFunctionalTest extends MauticMysqlTestCase
         $this->assertCount(0, $leads);
     }
 
+    public function testNoPlaceholderLeadCreatedWhenFeatureIsDisabled(): void
+    {
+        $this->setCreatePlaceholderContactSetting(false);
+
+        $company = $this->createCompany();
+
+        $leadRepo = $this->em->getRepository(Lead::class);
+        $leads    = $leadRepo->findAll();
+        $this->assertCount(0, $leads, 'No placeholder contact should be created when feature is disabled');
+
+        $placeholderContactRepo    = $this->em->getRepository(CompaniesPlaceholderLeads::class);
+        $placeholderContactEntries = $placeholderContactRepo->findAll();
+        $this->assertCount(0, $placeholderContactEntries, 'No placeholder entry should exist when feature is disabled');
+    }
+
+    private function setCreatePlaceholderContactSetting(bool $enabled): void
+    {
+        $integrationHelper = $this->getContainer()->get(\Mautic\PluginBundle\Helper\IntegrationHelper::class);
+        $this->assertInstanceOf(\Mautic\PluginBundle\Helper\IntegrationHelper::class, $integrationHelper);
+
+        $integration = $integrationHelper->getIntegrationObject('LeuchtfeuerCompanySegments');
+        $this->assertInstanceOf(\Mautic\IntegrationsBundle\Integration\Interfaces\IntegrationInterface::class, $integration);
+
+        $integrationEntity = $integration->getIntegrationConfiguration();
+
+        $featureSettings = $integrationEntity->getFeatureSettings();
+        if (!is_array($featureSettings)) {
+            $featureSettings = [];
+        }
+        if (!isset($featureSettings['integration']) || !is_array($featureSettings['integration'])) {
+            $featureSettings['integration'] = [];
+        }
+        $featureSettings['integration']['create_placeholder_contact'] = $enabled;
+        $integrationEntity->setFeatureSettings($featureSettings);
+
+        $this->em->persist($integrationEntity);
+        $this->em->flush();
+    }
+
     public function testAddToAndRemoveFromSegmentsViaCompanyForm(): void
     {
         if (!class_exists(\Mautic\CoreBundle\Cache\ResultCacheOptions::class)) {

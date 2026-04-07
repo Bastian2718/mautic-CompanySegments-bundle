@@ -44,7 +44,7 @@ class CompanySubscriber implements EventSubscriberInterface
 
     public function onCompanyPostSave(CompanyEvent $event): void
     {
-        if (!$this->config->isPublished()) {
+        if (!$this->config->isPublished() || !$this->config->getCreatePlaceholderContact()) {
             return;
         }
         $company = $event->getCompany();
