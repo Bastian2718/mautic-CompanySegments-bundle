@@ -209,14 +209,11 @@ class TypeOperatorSubscriber implements EventSubscriberInterface
 
     public function onTypeListCollect(ListFieldChoicesEvent $event): void
     {
-        $items     = $this->companySegmentModel->getCompanySegments();
-        $labelName = 'name';
-        $keyName   = 'id';
-
+        $items = $this->companySegmentModel->getCompanySegments();
         $choices = [];
 
         foreach ($items as $item) {
-            $choices[$item[$labelName]] = $item[$keyName];
+            $choices[$item['name']] = $item['id'];
         }
 
         $event->setChoicesForFieldAlias(CompanySegmentModel::PROPERTIES_FIELD, $choices);
@@ -230,7 +227,10 @@ class TypeOperatorSubscriber implements EventSubscriberInterface
             return;
         }
 
+        $companySegmentChoices = $this->fieldChoicesProvider->getChoicesForField('multiselect', CompanySegmentModel::PROPERTIES_FIELD);
+
         $fieldDetails['properties']['type'] = 'leadlist';
+        $fieldDetails['properties']['list'] = $companySegmentChoices;
 
         $changedEvent = new FormAdjustmentEvent(
             $event->getForm(),

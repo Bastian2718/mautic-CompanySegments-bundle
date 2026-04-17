@@ -156,4 +156,113 @@ class CompanySegmentRepository extends CommonRepository
 
         return $return;
     }
+
+    /**
+     * Check if a company is in any segment.
+     *
+     * @see \Mautic\LeadBundle\Entity\LeadListRepository::isContactInAnySegment
+     */
+    public function isCompanyInAnySegment(int $companyId): bool
+    {
+        $tableName = MAUTIC_TABLE_PREFIX.'companies_segments';
+
+        $sql = <<<SQL
+            SELECT segment_id
+            FROM $tableName
+            WHERE company_id = ?
+                AND manually_removed = 0
+            LIMIT 1
+SQL;
+
+        $segmentIds = $this->getEntityManager()->getConnection()
+            ->executeQuery(
+                $sql,
+                [$companyId],
+                [\PDO::PARAM_INT]
+            )
+            ->fetchFirstColumn();
+
+        return !empty($segmentIds);
+    }
+
+    /**
+     * Check if a company is NOT in any segment.
+     *
+     * @see \Mautic\LeadBundle\Entity\LeadListRepository::isNotContactInAnySegment
+     */
+    public function isNotCompanyInAnySegment(int $companyId): bool
+    {
+        return !$this->isCompanyInAnySegment($companyId);
+    }
+
+    /**
+     * Check if a company is in specific segments.
+     *
+     * @param int[] $expectedSegmentIds
+     *
+     * @see \Mautic\LeadBundle\Entity\LeadListRepository::isContactInSegments
+     */
+    public function isCompanyInSegments(int $companyId, array $expectedSegmentIds): bool
+    {
+        $segmentIds = $this->fetchCompanyToSegmentIdsRelationships($companyId, $expectedSegmentIds);
+
+        return !empty($segmentIds);
+    }
+
+    /**
+     * Check if a company is NOT in specific segments.
+     *
+     * @param int[] $expectedSegmentIds
+     *
+     * @see \Mautic\LeadBundle\Entity\LeadListRepository::isNotContactInSegments
+     */
+    public function isNotCompanyInSegments(int $companyId, array $expectedSegmentIds): bool
+    {
+        $segmentIds = $this->fetchCompanyToSegmentIdsRelationships($companyId, $expectedSegmentIds);
+
+        if (empty($segmentIds)) {
+            return true; // Company is not associated with any segment
+        }
+
+        foreach ($expectedSegmentIds as $expectedSegmentId) {
+            if (in_array($expectedSegmentId, $segmentIds)) { // No exact type comparison used!
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Fetch company to segment IDs relationships.
+     *
+     * @param int[] $expectedSegmentIds
+     *
+     * @return int[]
+     *
+     * @see \Mautic\LeadBundle\Entity\LeadListRepository::fetchContactToSegmentIdsRelationships
+     */
+    private function fetchCompanyToSegmentIdsRelationships(int $companyId, array $expectedSegmentIds): array
+    {
+        $tableName = MAUTIC_TABLE_PREFIX.'companies_segments';
+
+        $sql = <<<SQL
+            SELECT segment_id
+            FROM $tableName
+            WHERE company_id = ?
+                AND segment_id IN (?)
+                AND manually_removed = 0
+SQL;
+
+        return $this->getEntityManager()->getConnection()
+            ->executeQuery(
+                $sql,
+                [$companyId, $expectedSegmentIds],
+                [
+                    \PDO::PARAM_INT,
+                    \Doctrine\DBAL\ArrayParameterType::INTEGER,
+                ]
+            )
+            ->fetchFirstColumn();
+    }
 }

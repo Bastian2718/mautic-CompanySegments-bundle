@@ -6,6 +6,7 @@ use Mautic\CoreBundle\DependencyInjection\MauticCoreExtension;
 use Mautic\LeadBundle\Model\CompanyModel;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Model\CompanyModelDecorated;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 return function (ContainerConfigurator $configurator): void {
     $services = $configurator->services()
@@ -45,4 +46,14 @@ return function (ContainerConfigurator $configurator): void {
 
     $services->set(MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Model\CompanyFieldModelDecorated::class)
         ->decorate(Mautic\LeadBundle\Model\FieldModel::class);
+
+    $services->set(MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Form\Type\DwcEntryFiltersTypeDecorator::class)
+        ->decorate('mautic.form.type.dwc_entry_filters', null, 10)
+        ->args([
+            service('translator'),
+            service('mautic.lead.model.list'),
+            service('mautic.company_segments.model.company_segment'),
+        ])
+        ->call('setConnection', [service('database_connection')])
+        ->tag('form.type');
 };

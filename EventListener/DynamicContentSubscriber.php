@@ -1,0 +1,82 @@
+<?php
+
+declare(strict_types=1);
+
+namespace MauticPlugin\LeuchtfeuerCompanySegmentsBundle\EventListener;
+
+use Mautic\DynamicContentBundle\DynamicContentEvents;
+use Mautic\DynamicContentBundle\Event\ContactFiltersEvaluateEvent;
+use Mautic\LeadBundle\Entity\CompanyLeadRepository;
+use Mautic\LeadBundle\Entity\Lead;
+use Mautic\LeadBundle\Exception\PrimaryCompanyNotFoundException;
+use Mautic\LeadBundle\Segment\OperatorOptions;
+use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompanySegmentRepository;
+use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Model\CompanySegmentModel;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+
+/**
+ * Handles evaluation of company_segments filters in Dynamic Web Content.
+ */
+class DynamicContentSubscriber implements EventSubscriberInterface
+{
+    public function __construct(
+        private CompanySegmentRepository $companySegmentRepository,
+        private CompanyLeadRepository $companyLeadRepository
+    ) {
+    }
+
+    public static function getSubscribedEvents(): array
+    {
+        return [
+            DynamicContentEvents::ON_CONTACTS_FILTER_EVALUATE => ['onContactFilterEvaluate', 0],
+        ];
+    }
+
+    public function onContactFilterEvaluate(ContactFiltersEvaluateEvent $event): void
+    {
+        foreach ($event->getFilters() as $filter) {
+            // Check if this is a company_segments filter
+            if (CompanySegmentModel::PROPERTIES_FIELD === ($filter['field'] ?? null)
+                && CompanySegmentModel::PROPERTIES_FIELD === ($filter['object'] ?? null)) {
+                $event->setIsMatched(
+                    $this->isContactCompanySegmentRelationshipValid(
+                        $event->getContact(),
+                        $filter['operator'],
+                        $filter['filter'] ?? []
+                    )
+                );
+                $event->setIsEvaluated(true);
+
+                return;
+            }
+        }
+    }
+
+    /**
+     * @param array<int>|null $segmentIds
+     */
+    private function isContactCompanySegmentRelationshipValid(
+        Lead $contact,
+        string $operator,
+        ?array $segmentIds = null
+    ): bool {
+        // Get the primary company ID directly from repository (avoid lazy-loading issues)
+        try {
+            $primaryCompany = $this->companyLeadRepository->getPrimaryCompanyByLeadId((int) $contact->getId());
+            $companyId = (int) $primaryCompany['id'];
+        } catch (PrimaryCompanyNotFoundException) {
+            return match ($operator) {
+                OperatorOptions::EMPTY => true,
+                default => false,
+            };
+        }
+
+        return match ($operator) {
+            OperatorOptions::EMPTY     => !$this->companySegmentRepository->isCompanyInAnySegment($companyId),
+            OperatorOptions::NOT_EMPTY => $this->companySegmentRepository->isCompanyInAnySegment($companyId),
+            OperatorOptions::IN        => $this->companySegmentRepository->isCompanyInSegments($companyId, $segmentIds ?? []),
+            OperatorOptions::NOT_IN    => $this->companySegmentRepository->isNotCompanyInSegments($companyId, $segmentIds ?? []),
+            default                    => throw new \InvalidArgumentException(sprintf("Unexpected operator '%s'", $operator)),
+        };
+    }
+}
