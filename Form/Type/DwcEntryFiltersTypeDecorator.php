@@ -37,7 +37,7 @@ class DwcEntryFiltersTypeDecorator extends DwcEntryFiltersType
         TranslatorInterface $translator,
         ListModel $listModel,
         private CompanySegmentModel $companySegmentModel,
-        ?Connection $connection = null
+        ?Connection $connection = null,
     ) {
         parent::__construct($translator, $listModel);
         $this->translatorLocal       = $translator;
@@ -193,7 +193,7 @@ class DwcEntryFiltersTypeDecorator extends DwcEntryFiltersType
 
         foreach ($items as $item) {
             \assert(is_array($item) && isset($item['name']) && isset($item['id']));
-            $choices[(string) $item['name']] = (int) $item['id'];
+            $choices[$item['name']] = (int) $item['id'];
         }
 
         return $choices;

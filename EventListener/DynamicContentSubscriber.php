@@ -21,7 +21,7 @@ class DynamicContentSubscriber implements EventSubscriberInterface
 {
     public function __construct(
         private CompanySegmentRepository $companySegmentRepository,
-        private CompanyLeadRepository $companyLeadRepository
+        private CompanyLeadRepository $companyLeadRepository,
     ) {
     }
 
@@ -64,12 +64,12 @@ class DynamicContentSubscriber implements EventSubscriberInterface
     private function isContactCompanySegmentRelationshipValid(
         Lead $contact,
         string $operator,
-        array $segmentIds = []
+        array $segmentIds = [],
     ): bool {
         // Get the primary company ID directly from repository (avoid lazy-loading issues)
         try {
-            $primaryCompany = $this->companyLeadRepository->getPrimaryCompanyByLeadId((int) $contact->getId());
-            \assert(is_array($primaryCompany) && isset($primaryCompany['id']));
+            $primaryCompany = $this->companyLeadRepository->getPrimaryCompanyByLeadId($contact->getId());
+            \assert(isset($primaryCompany['id']));
             $companyId = (int) $primaryCompany['id'];
         } catch (PrimaryCompanyNotFoundException) {
             return match ($operator) {
