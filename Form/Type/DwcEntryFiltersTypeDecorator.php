@@ -27,6 +27,10 @@ class DwcEntryFiltersTypeDecorator extends DwcEntryFiltersType
     use RegexTrait;
 
     private TranslatorInterface $translatorLocal;
+
+    /**
+     * @var array<string, int>
+     */
     private array $companySegmentChoices;
 
     public function __construct(
@@ -36,10 +40,10 @@ class DwcEntryFiltersTypeDecorator extends DwcEntryFiltersType
         ?Connection $connection = null
     ) {
         parent::__construct($translator, $listModel);
-        $this->translatorLocal = $translator;
+        $this->translatorLocal       = $translator;
         $this->companySegmentChoices = $this->getCompanySegmentChoices();
 
-        if ($connection) {
+        if (null !== $connection) {
             $this->setConnection($connection);
         }
     }
@@ -77,16 +81,16 @@ class DwcEntryFiltersTypeDecorator extends DwcEntryFiltersType
 
         $builder->addEventListener(
             FormEvents::PRE_SET_DATA,
-            function (FormEvent $event) use ($options): void {
-                $this->preProcessCompanySegments($event, $options);
+            function (FormEvent $event): void {
+                $this->preProcessCompanySegments($event);
             },
             10
         );
 
         $builder->addEventListener(
             FormEvents::PRE_SUBMIT,
-            function (FormEvent $event) use ($options): void {
-                $this->preProcessCompanySegments($event, $options);
+            function (FormEvent $event): void {
+                $this->preProcessCompanySegments($event);
             },
             10
         );
@@ -116,17 +120,18 @@ class DwcEntryFiltersTypeDecorator extends DwcEntryFiltersType
         $builder->add('type', HiddenType::class);
     }
 
-    private function preProcessCompanySegments(FormEvent $event, array $options): void
+    private function preProcessCompanySegments(FormEvent $event): void
     {
         $data = $event->getData();
+        \assert(is_array($data));
 
-        if (!isset($data['type']) || $data['type'] !== 'company_segments') {
+        if (!isset($data['type']) || 'company_segments' !== $data['type']) {
             return;
         }
 
-        $data['__original_type'] = 'company_segments';
+        $data['__original_type']     = 'company_segments';
         $data['__original_operator'] = $data['operator'] ?? null;
-        $data['type'] = 'text';
+        $data['type']                = 'text';
 
         if (!isset($data['filter'])) {
             $data['filter'] = [];
@@ -137,11 +142,15 @@ class DwcEntryFiltersTypeDecorator extends DwcEntryFiltersType
         $event->setData($data);
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
     private function postProcessCompanySegments(FormEvent $event, array $options): void
     {
         $data = $event->getData();
+        \assert(is_array($data));
 
-        if (!isset($data['__original_type']) || $data['__original_type'] !== 'company_segments') {
+        if (!isset($data['__original_type']) || 'company_segments' !== $data['__original_type']) {
             return;
         }
 
@@ -152,7 +161,8 @@ class DwcEntryFiltersTypeDecorator extends DwcEntryFiltersType
         }
 
         $operator = $data['__original_operator'] ?? $data['operator'] ?? '';
-        $multiple = in_array($operator, ['in', '!in']);
+        \assert(is_string($operator));
+        $multiple = in_array($operator, ['in', '!in'], true);
 
         $form->add(
             'filter',
@@ -178,14 +188,14 @@ class DwcEntryFiltersTypeDecorator extends DwcEntryFiltersType
      */
     private function getCompanySegmentChoices(): array
     {
-        $items = $this->companySegmentModel->getCompanySegments();
+        $items   = $this->companySegmentModel->getCompanySegments();
         $choices = [];
 
         foreach ($items as $item) {
-            $choices[$item['name']] = $item['id'];
+            \assert(is_array($item) && isset($item['name']) && isset($item['id']));
+            $choices[(string) $item['name']] = (int) $item['id'];
         }
 
         return $choices;
     }
 }
-

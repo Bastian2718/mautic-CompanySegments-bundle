@@ -182,7 +182,7 @@ SQL;
             )
             ->fetchFirstColumn();
 
-        return !empty($segmentIds);
+        return [] !== $segmentIds;
     }
 
     /**
@@ -206,7 +206,7 @@ SQL;
     {
         $segmentIds = $this->fetchCompanyToSegmentIdsRelationships($companyId, $expectedSegmentIds);
 
-        return !empty($segmentIds);
+        return [] !== $segmentIds;
     }
 
     /**
@@ -220,12 +220,12 @@ SQL;
     {
         $segmentIds = $this->fetchCompanyToSegmentIdsRelationships($companyId, $expectedSegmentIds);
 
-        if (empty($segmentIds)) {
+        if ([] === $segmentIds) {
             return true; // Company is not associated with any segment
         }
 
         foreach ($expectedSegmentIds as $expectedSegmentId) {
-            if (in_array($expectedSegmentId, $segmentIds)) { // No exact type comparison used!
+            if (in_array($expectedSegmentId, $segmentIds, true)) {
                 return false;
             }
         }
@@ -254,7 +254,8 @@ SQL;
                 AND manually_removed = 0
 SQL;
 
-        return $this->getEntityManager()->getConnection()
+        /** @var int[] $result */
+        $result = $this->getEntityManager()->getConnection()
             ->executeQuery(
                 $sql,
                 [$companyId, $expectedSegmentIds],
@@ -264,5 +265,7 @@ SQL;
                 ]
             )
             ->fetchFirstColumn();
+
+        return $result;
     }
 }

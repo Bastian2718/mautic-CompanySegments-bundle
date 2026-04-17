@@ -35,14 +35,20 @@ class DynamicContentSubscriber implements EventSubscriberInterface
     public function onContactFilterEvaluate(ContactFiltersEvaluateEvent $event): void
     {
         foreach ($event->getFilters() as $filter) {
-            // Check if this is a company_segments filter
+            \assert(is_array($filter));
             if (CompanySegmentModel::PROPERTIES_FIELD === ($filter['field'] ?? null)
                 && CompanySegmentModel::PROPERTIES_FIELD === ($filter['object'] ?? null)) {
+                $operator = $filter['operator'] ?? '';
+                \assert(is_string($operator));
+                $filterValue = $filter['filter'] ?? [];
+                \assert(is_array($filterValue));
+                $segmentIds = array_map('intval', $filterValue);
+
                 $event->setIsMatched(
                     $this->isContactCompanySegmentRelationshipValid(
                         $event->getContact(),
-                        $filter['operator'],
-                        $filter['filter'] ?? []
+                        $operator,
+                        $segmentIds
                     )
                 );
                 $event->setIsEvaluated(true);
@@ -53,29 +59,30 @@ class DynamicContentSubscriber implements EventSubscriberInterface
     }
 
     /**
-     * @param array<int>|null $segmentIds
+     * @param int[] $segmentIds
      */
     private function isContactCompanySegmentRelationshipValid(
         Lead $contact,
         string $operator,
-        ?array $segmentIds = null
+        array $segmentIds = []
     ): bool {
         // Get the primary company ID directly from repository (avoid lazy-loading issues)
         try {
             $primaryCompany = $this->companyLeadRepository->getPrimaryCompanyByLeadId((int) $contact->getId());
+            \assert(is_array($primaryCompany) && isset($primaryCompany['id']));
             $companyId = (int) $primaryCompany['id'];
         } catch (PrimaryCompanyNotFoundException) {
             return match ($operator) {
                 OperatorOptions::EMPTY => true,
-                default => false,
+                default                => false,
             };
         }
 
         return match ($operator) {
             OperatorOptions::EMPTY     => !$this->companySegmentRepository->isCompanyInAnySegment($companyId),
             OperatorOptions::NOT_EMPTY => $this->companySegmentRepository->isCompanyInAnySegment($companyId),
-            OperatorOptions::IN        => $this->companySegmentRepository->isCompanyInSegments($companyId, $segmentIds ?? []),
-            OperatorOptions::NOT_IN    => $this->companySegmentRepository->isNotCompanyInSegments($companyId, $segmentIds ?? []),
+            OperatorOptions::IN        => $this->companySegmentRepository->isCompanyInSegments($companyId, $segmentIds),
+            OperatorOptions::NOT_IN    => $this->companySegmentRepository->isNotCompanyInSegments($companyId, $segmentIds),
             default                    => throw new \InvalidArgumentException(sprintf("Unexpected operator '%s'", $operator)),
         };
     }

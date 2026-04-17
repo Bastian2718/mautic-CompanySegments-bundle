@@ -209,7 +209,7 @@ class TypeOperatorSubscriber implements EventSubscriberInterface
 
     public function onTypeListCollect(ListFieldChoicesEvent $event): void
     {
-        $items = $this->companySegmentModel->getCompanySegments();
+        $items   = $this->companySegmentModel->getCompanySegments();
         $choices = [];
 
         foreach ($items as $item) {
