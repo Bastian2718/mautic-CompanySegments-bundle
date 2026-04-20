@@ -6,6 +6,7 @@ namespace MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\Functional\EventLi
 
 use Mautic\DynamicContentBundle\Entity\DynamicContent;
 use Mautic\PageBundle\Entity\Page;
+use Mautic\PluginBundle\Entity\Integration;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\EnablePluginTrait;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\HelperCompanySegmentTestTrait;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\MauticMysqlTestCase;
@@ -22,6 +23,17 @@ class DynamicContentSubscriberFunctionalTest extends MauticMysqlTestCase
         $this->useCleanupRollback = false;
         $this->setUpSymfony($this->configParams);
         $this->enablePlugin(true);
+
+        // DEBUG: Check DB directly after enablePlugin
+        $integrationFromDb = $this->em->getRepository(Integration::class)->findOneBy(['name' => 'LeuchtfeuerCompanySegments']);
+        error_log('[SETUP-DEBUG] Integration in DB after enablePlugin: ' . ($integrationFromDb ? 'FOUND' : 'NOT FOUND'));
+        if ($integrationFromDb) {
+            error_log('[SETUP-DEBUG] Integration.isPublished in DB: ' . ($integrationFromDb->getIsPublished() ? 'YES' : 'NO'));
+        }
+
+        // DEBUG: Check what Config service sees
+        $config = self::getContainer()->get(\MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Integration\Config::class);
+        error_log('[SETUP-DEBUG] Config.isPublished(): ' . ($config->isPublished() ? 'YES' : 'NO'));
     }
 
     public function testLeadSeesContentWhenPrimaryCompanyIsInSegment(): void
@@ -50,13 +62,20 @@ class DynamicContentSubscriberFunctionalTest extends MauticMysqlTestCase
         ];
         $dynamicContent = $this->createDynamicContentWithFilter($filters, 'VIP Content');
 
+        // DEBUG: Check if plugin is published
+        $config = self::getContainer()->get(\MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Integration\Config::class);
+        $this->assertTrue($config->isPublished(), 'Plugin should be published');
+
         $page = $this->createPage($dynamicContent);
 
         $this->client->request(Request::METHOD_GET, sprintf('/%s', $page->getAlias()));
 
         $response = $this->client->getResponse();
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertStringContainsString('VIP Content', $response->getContent());
+
+        // DEBUG: Show actual content if assertion fails
+        $content = $response->getContent();
+        $this->assertStringContainsString('VIP Content', $content, 'Expected VIP Content but got: ' . $content);
     }
 
     public function testLeadDoesNotSeeContentWhenPrimaryCompanyIsNotInSegment(): void

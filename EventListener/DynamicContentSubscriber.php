@@ -36,9 +36,14 @@ class DynamicContentSubscriber implements EventSubscriberInterface
 
     public function onContactFilterEvaluate(ContactFiltersEvaluateEvent $event): void
     {
+        error_log('[DWC-DEBUG] Subscriber called. Published: ' . ($this->config->isPublished() ? 'YES' : 'NO'));
+
         if (!$this->config->isPublished()) {
+            error_log('[DWC-DEBUG] Plugin not published, returning early');
             return;
         }
+
+        error_log('[DWC-DEBUG] Filters: ' . json_encode($event->getFilters()));
 
         foreach ($event->getFilters() as $filter) {
             \assert(is_array($filter));
@@ -50,18 +55,22 @@ class DynamicContentSubscriber implements EventSubscriberInterface
                 \assert(is_array($filterValue));
                 $segmentIds = array_map('intval', $filterValue);
 
-                $event->setIsMatched(
-                    $this->isContactCompanySegmentRelationshipValid(
-                        $event->getContact(),
-                        $operator,
-                        $segmentIds
-                    )
+                $isMatched = $this->isContactCompanySegmentRelationshipValid(
+                    $event->getContact(),
+                    $operator,
+                    $segmentIds
                 );
+
+                error_log('[DWC-DEBUG] Filter matched, isMatched: ' . ($isMatched ? 'YES' : 'NO'));
+
+                $event->setIsMatched($isMatched);
                 $event->setIsEvaluated(true);
 
                 return;
             }
         }
+
+        error_log('[DWC-DEBUG] No company_segments filter found');
     }
 
     /**
