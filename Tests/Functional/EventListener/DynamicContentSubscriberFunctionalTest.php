@@ -100,7 +100,7 @@ class DynamicContentSubscriberFunctionalTest extends MauticMysqlTestCase
         $clientConfig = $this->client->getContainer()->get(\MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Integration\Config::class);
         error_log('[TEST-DEBUG] Client container Config.isPublished(): ' . ($clientConfig->isPublished() ? 'YES' : 'NO'));
 
-        $this->client->request(Request::METHOD_GET, sprintf('/%s', $page->getAlias()));
+        $this->client->request(Request::METHOD_GET, sprintf('/%s?mtc_id=%d', $page->getAlias(), $lead->getId()));
 
         $response = $this->client->getResponse();
         $this->assertSame(200, $response->getStatusCode());
@@ -137,7 +137,7 @@ class DynamicContentSubscriberFunctionalTest extends MauticMysqlTestCase
 
         $page = $this->createPage($dynamicContent);
 
-        $this->client->request(Request::METHOD_GET, sprintf('/%s', $page->getAlias()));
+        $this->client->request(Request::METHOD_GET, sprintf('/%s?mtc_id=%d', $page->getAlias(), $lead->getId()));
 
         $response = $this->client->getResponse();
         $this->assertSame(200, $response->getStatusCode());
@@ -172,7 +172,7 @@ class DynamicContentSubscriberFunctionalTest extends MauticMysqlTestCase
 
         $page = $this->createPage($dynamicContent);
 
-        $this->client->request(Request::METHOD_GET, sprintf('/%s', $page->getAlias()));
+        $this->client->request(Request::METHOD_GET, sprintf('/%s?mtc_id=%d', $page->getAlias(), $lead->getId()));
 
         $response = $this->client->getResponse();
         $this->assertSame(200, $response->getStatusCode());
@@ -202,7 +202,7 @@ class DynamicContentSubscriberFunctionalTest extends MauticMysqlTestCase
 
         $page = $this->createPage($dynamicContent);
 
-        $this->client->request(Request::METHOD_GET, sprintf('/%s', $page->getAlias()));
+        $this->client->request(Request::METHOD_GET, sprintf('/%s?mtc_id=%d', $page->getAlias(), $lead->getId()));
 
         $response = $this->client->getResponse();
         $this->assertSame(200, $response->getStatusCode());
@@ -237,7 +237,7 @@ class DynamicContentSubscriberFunctionalTest extends MauticMysqlTestCase
 
         $page = $this->createPage($dynamicContent);
 
-        $this->client->request(Request::METHOD_GET, sprintf('/%s', $page->getAlias()));
+        $this->client->request(Request::METHOD_GET, sprintf('/%s?mtc_id=%d', $page->getAlias(), $lead->getId()));
 
         $response = $this->client->getResponse();
         $this->assertSame(200, $response->getStatusCode());
@@ -273,7 +273,7 @@ class DynamicContentSubscriberFunctionalTest extends MauticMysqlTestCase
 
         $page = $this->createPage($dynamicContent);
 
-        $this->client->request(Request::METHOD_GET, sprintf('/%s', $page->getAlias()));
+        $this->client->request(Request::METHOD_GET, sprintf('/%s?mtc_id=%d', $page->getAlias(), $lead->getId()));
 
         $response = $this->client->getResponse();
         $this->assertSame(200, $response->getStatusCode());
@@ -302,7 +302,7 @@ class DynamicContentSubscriberFunctionalTest extends MauticMysqlTestCase
 
         $page = $this->createPage($dynamicContent);
 
-        $this->client->request(Request::METHOD_GET, sprintf('/%s', $page->getAlias()));
+        $this->client->request(Request::METHOD_GET, sprintf('/%s?mtc_id=%d', $page->getAlias(), $lead->getId()));
 
         $response = $this->client->getResponse();
         $this->assertSame(200, $response->getStatusCode());
@@ -339,7 +339,7 @@ class DynamicContentSubscriberFunctionalTest extends MauticMysqlTestCase
 
         $page = $this->createPage($dynamicContent);
 
-        $this->client->request(Request::METHOD_GET, sprintf('/%s', $page->getAlias()));
+        $this->client->request(Request::METHOD_GET, sprintf('/%s?mtc_id=%d', $page->getAlias(), $lead->getId()));
 
         $response = $this->client->getResponse();
         $this->assertSame(200, $response->getStatusCode());
