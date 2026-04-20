@@ -158,8 +158,6 @@ class CompanySegmentRepository extends CommonRepository
     }
 
     /**
-     * Check if a company is in any segment.
-     *
      * @see \Mautic\LeadBundle\Entity\LeadListRepository::isContactInAnySegment
      */
     public function isCompanyInAnySegment(int $companyId): bool
@@ -186,8 +184,6 @@ SQL;
     }
 
     /**
-     * Check if a company is NOT in any segment.
-     *
      * @see \Mautic\LeadBundle\Entity\LeadListRepository::isNotContactInAnySegment
      */
     public function isNotCompanyInAnySegment(int $companyId): bool
@@ -196,8 +192,6 @@ SQL;
     }
 
     /**
-     * Check if a company is in specific segments.
-     *
      * @param int[] $expectedSegmentIds
      *
      * @see \Mautic\LeadBundle\Entity\LeadListRepository::isContactInSegments
@@ -210,8 +204,6 @@ SQL;
     }
 
     /**
-     * Check if a company is NOT in specific segments.
-     *
      * @param int[] $expectedSegmentIds
      *
      * @see \Mautic\LeadBundle\Entity\LeadListRepository::isNotContactInSegments
@@ -221,7 +213,7 @@ SQL;
         $segmentIds = $this->fetchCompanyToSegmentIdsRelationships($companyId, $expectedSegmentIds);
 
         if ([] === $segmentIds) {
-            return true; // Company is not associated with any segment
+            return true;
         }
 
         foreach ($expectedSegmentIds as $expectedSegmentId) {
@@ -234,8 +226,6 @@ SQL;
     }
 
     /**
-     * Fetch company to segment IDs relationships.
-     *
      * @param int[] $expectedSegmentIds
      *
      * @return int[]

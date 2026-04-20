@@ -11,6 +11,7 @@ use Mautic\LeadBundle\Entity\Lead;
 use Mautic\LeadBundle\Exception\PrimaryCompanyNotFoundException;
 use Mautic\LeadBundle\Segment\OperatorOptions;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompanySegmentRepository;
+use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Integration\Config;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Model\CompanySegmentModel;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -22,6 +23,7 @@ class DynamicContentSubscriber implements EventSubscriberInterface
     public function __construct(
         private CompanySegmentRepository $companySegmentRepository,
         private CompanyLeadRepository $companyLeadRepository,
+        private Config $config,
     ) {
     }
 
@@ -34,6 +36,10 @@ class DynamicContentSubscriber implements EventSubscriberInterface
 
     public function onContactFilterEvaluate(ContactFiltersEvaluateEvent $event): void
     {
+        if (!$this->config->isPublished()) {
+            return;
+        }
+
         foreach ($event->getFilters() as $filter) {
             \assert(is_array($filter));
             if (CompanySegmentModel::PROPERTIES_FIELD === ($filter['field'] ?? null)
@@ -69,7 +75,7 @@ class DynamicContentSubscriber implements EventSubscriberInterface
         // Get the primary company ID directly from repository (avoid lazy-loading issues)
         try {
             $primaryCompany = $this->companyLeadRepository->getPrimaryCompanyByLeadId($contact->getId());
-            \assert(isset($primaryCompany['id']));
+            \assert(isset($primaryCompany['id']) && is_numeric($primaryCompany['id']));
             $companyId = (int) $primaryCompany['id'];
         } catch (PrimaryCompanyNotFoundException) {
             return match ($operator) {

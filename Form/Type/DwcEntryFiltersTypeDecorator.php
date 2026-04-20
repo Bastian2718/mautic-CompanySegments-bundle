@@ -123,7 +123,10 @@ class DwcEntryFiltersTypeDecorator extends DwcEntryFiltersType
     private function preProcessCompanySegments(FormEvent $event): void
     {
         $data = $event->getData();
-        \assert(is_array($data));
+
+        if (!is_array($data)) {
+            return;
+        }
 
         if (!isset($data['type']) || 'company_segments' !== $data['type']) {
             return;
@@ -148,7 +151,10 @@ class DwcEntryFiltersTypeDecorator extends DwcEntryFiltersType
     private function postProcessCompanySegments(FormEvent $event, array $options): void
     {
         $data = $event->getData();
-        \assert(is_array($data));
+
+        if (!is_array($data)) {
+            return;
+        }
 
         if (!isset($data['__original_type']) || 'company_segments' !== $data['__original_type']) {
             return;
@@ -192,7 +198,7 @@ class DwcEntryFiltersTypeDecorator extends DwcEntryFiltersType
         $choices = [];
 
         foreach ($items as $item) {
-            \assert(is_array($item) && isset($item['name']) && isset($item['id']));
+            \assert(is_array($item));
             $choices[$item['name']] = (int) $item['id'];
         }
 
