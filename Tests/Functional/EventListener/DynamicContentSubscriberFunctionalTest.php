@@ -82,6 +82,15 @@ class DynamicContentSubscriberFunctionalTest extends MauticMysqlTestCase
 
         $page = $this->createPage($dynamicContent);
 
+        // DEBUG: Check client container's subscriber
+        $clientDispatcher = $this->client->getContainer()->get('event_dispatcher');
+        $clientHasListeners = $clientDispatcher->hasListeners(\Mautic\DynamicContentBundle\DynamicContentEvents::ON_CONTACTS_FILTER_EVALUATE);
+        error_log('[TEST-DEBUG] Client container has DWC listeners: ' . ($clientHasListeners ? 'YES' : 'NO'));
+
+        // DEBUG: Check if plugin is published in client container
+        $clientConfig = $this->client->getContainer()->get(\MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Integration\Config::class);
+        error_log('[TEST-DEBUG] Client container Config.isPublished(): ' . ($clientConfig->isPublished() ? 'YES' : 'NO'));
+
         $this->client->request(Request::METHOD_GET, sprintf('/%s', $page->getAlias()));
 
         $response = $this->client->getResponse();
