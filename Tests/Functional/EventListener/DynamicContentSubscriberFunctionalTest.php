@@ -6,7 +6,6 @@ namespace MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\Functional\EventLi
 
 use Mautic\DynamicContentBundle\Entity\DynamicContent;
 use Mautic\PageBundle\Entity\Page;
-use Mautic\PluginBundle\Entity\Integration;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\EnablePluginTrait;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\HelperCompanySegmentTestTrait;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\MauticMysqlTestCase;
@@ -23,31 +22,6 @@ class DynamicContentSubscriberFunctionalTest extends MauticMysqlTestCase
         $this->useCleanupRollback = false;
         $this->setUpSymfony($this->configParams);
         $this->enablePlugin(true);
-
-        // DEBUG: Check DB directly after enablePlugin
-        $integrationFromDb = $this->em->getRepository(Integration::class)->findOneBy(['name' => 'LeuchtfeuerCompanySegments']);
-        error_log('[SETUP-DEBUG] Integration in DB after enablePlugin: ' . ($integrationFromDb ? 'FOUND' : 'NOT FOUND'));
-        if ($integrationFromDb) {
-            error_log('[SETUP-DEBUG] Integration.isPublished in DB: ' . ($integrationFromDb->getIsPublished() ? 'YES' : 'NO'));
-        }
-
-        // DEBUG: Check what Config service sees
-        $config = self::getContainer()->get(\MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Integration\Config::class);
-        error_log('[SETUP-DEBUG] Config.isPublished(): ' . ($config->isPublished() ? 'YES' : 'NO'));
-
-        // DEBUG: Check if subscriber is registered
-        $dispatcher = self::getContainer()->get('event_dispatcher');
-        $hasListeners = $dispatcher->hasListeners(\Mautic\DynamicContentBundle\DynamicContentEvents::ON_CONTACTS_FILTER_EVALUATE);
-        error_log('[SETUP-DEBUG] EventDispatcher has DWC listeners: ' . ($hasListeners ? 'YES' : 'NO'));
-
-        if ($hasListeners) {
-            $listeners = $dispatcher->getListeners(\Mautic\DynamicContentBundle\DynamicContentEvents::ON_CONTACTS_FILTER_EVALUATE);
-            error_log('[SETUP-DEBUG] Number of listeners: ' . count($listeners));
-            foreach ($listeners as $listener) {
-                $listenerClass = is_array($listener) && is_object($listener[0]) ? get_class($listener[0]) : 'unknown';
-                error_log('[SETUP-DEBUG] Listener: ' . $listenerClass);
-            }
-        }
     }
 
     public function testLeadSeesContentWhenPrimaryCompanyIsInSegment(): void
@@ -60,17 +34,8 @@ class DynamicContentSubscriberFunctionalTest extends MauticMysqlTestCase
         $lead = $this->createLead('john@acme.com', 'John');
         $this->addLeadToCompany($lead, $company, true);
 
-        // DEBUG: Check lead details
-        error_log('[TEST-DEBUG] Lead ID: ' . $lead->getId());
-        error_log('[TEST-DEBUG] Lead email: ' . $lead->getEmail());
-        error_log('[TEST-DEBUG] Lead has primary company: ' . ($lead->getPrimaryCompany() ? 'YES (ID: ' . $lead->getPrimaryCompany()->getId() . ')' : 'NO'));
-
         $contactTracker = self::getContainer()->get('mautic.tracker.contact');
         $contactTracker->setSystemContact($lead);
-
-        // DEBUG: Verify contact tracker
-        $trackedContact = $contactTracker->getContact();
-        error_log('[TEST-DEBUG] Tracked contact ID: ' . ($trackedContact ? $trackedContact->getId() : 'NULL'));
 
         $filters = [
             [
@@ -91,31 +56,11 @@ class DynamicContentSubscriberFunctionalTest extends MauticMysqlTestCase
 
         $page = $this->createPage($dynamicContent);
 
-        // DEBUG: Check client container's subscriber
-        $clientDispatcher = $this->client->getContainer()->get('event_dispatcher');
-        $clientHasListeners = $clientDispatcher->hasListeners(\Mautic\DynamicContentBundle\DynamicContentEvents::ON_CONTACTS_FILTER_EVALUATE);
-        error_log('[TEST-DEBUG] Client container has DWC listeners: ' . ($clientHasListeners ? 'YES' : 'NO'));
-
-        // DEBUG: Check if plugin is published in client container
-        $clientConfig = $this->client->getContainer()->get(\MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Integration\Config::class);
-        error_log('[TEST-DEBUG] Client container Config.isPublished(): ' . ($clientConfig->isPublished() ? 'YES' : 'NO'));
-
-        $url = sprintf('/%s?mtc_id=%d', $page->getAlias(), $lead->getId());
-        error_log('[TEST-DEBUG] Requesting URL: ' . $url);
-
-        $this->client->request(Request::METHOD_GET, $url);
+        $this->client->request(Request::METHOD_GET, sprintf('/%s?mtc_id=%d', $page->getAlias(), $lead->getId()));
 
         $response = $this->client->getResponse();
         $this->assertSame(200, $response->getStatusCode());
-
-        // DEBUG: Check if lead was tracked in HTTP request
-        $contactTrackerAfterRequest = $this->client->getContainer()->get('mautic.tracker.contact');
-        $trackedContactAfterRequest = $contactTrackerAfterRequest->getContact();
-        error_log('[TEST-DEBUG] After HTTP request, tracked contact ID: ' . ($trackedContactAfterRequest ? $trackedContactAfterRequest->getId() : 'NULL'));
-
-        // DEBUG: Show actual content if assertion fails
-        $content = $response->getContent();
-        $this->assertStringContainsString('VIP Content', $content, 'Expected VIP Content but got: ' . $content);
+        $this->assertStringContainsString('VIP Content', $response->getContent());
     }
 
     public function testLeadDoesNotSeeContentWhenPrimaryCompanyIsNotInSegment(): void
