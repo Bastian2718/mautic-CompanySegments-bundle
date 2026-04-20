@@ -60,8 +60,17 @@ class DynamicContentSubscriberFunctionalTest extends MauticMysqlTestCase
         $lead = $this->createLead('john@acme.com', 'John');
         $this->addLeadToCompany($lead, $company, true);
 
+        // DEBUG: Check lead details
+        error_log('[TEST-DEBUG] Lead ID: ' . $lead->getId());
+        error_log('[TEST-DEBUG] Lead email: ' . $lead->getEmail());
+        error_log('[TEST-DEBUG] Lead has primary company: ' . ($lead->getPrimaryCompany() ? 'YES (ID: ' . $lead->getPrimaryCompany()->getId() . ')' : 'NO'));
+
         $contactTracker = self::getContainer()->get('mautic.tracker.contact');
         $contactTracker->setSystemContact($lead);
+
+        // DEBUG: Verify contact tracker
+        $trackedContact = $contactTracker->getContact();
+        error_log('[TEST-DEBUG] Tracked contact ID: ' . ($trackedContact ? $trackedContact->getId() : 'NULL'));
 
         $filters = [
             [
