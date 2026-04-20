@@ -100,10 +100,18 @@ class DynamicContentSubscriberFunctionalTest extends MauticMysqlTestCase
         $clientConfig = $this->client->getContainer()->get(\MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Integration\Config::class);
         error_log('[TEST-DEBUG] Client container Config.isPublished(): ' . ($clientConfig->isPublished() ? 'YES' : 'NO'));
 
-        $this->client->request(Request::METHOD_GET, sprintf('/%s?mtc_id=%d', $page->getAlias(), $lead->getId()));
+        $url = sprintf('/%s?mtc_id=%d', $page->getAlias(), $lead->getId());
+        error_log('[TEST-DEBUG] Requesting URL: ' . $url);
+
+        $this->client->request(Request::METHOD_GET, $url);
 
         $response = $this->client->getResponse();
         $this->assertSame(200, $response->getStatusCode());
+
+        // DEBUG: Check if lead was tracked in HTTP request
+        $contactTrackerAfterRequest = $this->client->getContainer()->get('mautic.tracker.contact');
+        $trackedContactAfterRequest = $contactTrackerAfterRequest->getContact();
+        error_log('[TEST-DEBUG] After HTTP request, tracked contact ID: ' . ($trackedContactAfterRequest ? $trackedContactAfterRequest->getId() : 'NULL'));
 
         // DEBUG: Show actual content if assertion fails
         $content = $response->getContent();
