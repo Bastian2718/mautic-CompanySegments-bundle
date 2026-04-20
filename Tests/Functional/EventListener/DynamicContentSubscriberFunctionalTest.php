@@ -34,6 +34,20 @@ class DynamicContentSubscriberFunctionalTest extends MauticMysqlTestCase
         // DEBUG: Check what Config service sees
         $config = self::getContainer()->get(\MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Integration\Config::class);
         error_log('[SETUP-DEBUG] Config.isPublished(): ' . ($config->isPublished() ? 'YES' : 'NO'));
+
+        // DEBUG: Check if subscriber is registered
+        $dispatcher = self::getContainer()->get('event_dispatcher');
+        $hasListeners = $dispatcher->hasListeners(\Mautic\DynamicContentBundle\DynamicContentEvents::ON_CONTACTS_FILTER_EVALUATE);
+        error_log('[SETUP-DEBUG] EventDispatcher has DWC listeners: ' . ($hasListeners ? 'YES' : 'NO'));
+
+        if ($hasListeners) {
+            $listeners = $dispatcher->getListeners(\Mautic\DynamicContentBundle\DynamicContentEvents::ON_CONTACTS_FILTER_EVALUATE);
+            error_log('[SETUP-DEBUG] Number of listeners: ' . count($listeners));
+            foreach ($listeners as $listener) {
+                $listenerClass = is_array($listener) && is_object($listener[0]) ? get_class($listener[0]) : 'unknown';
+                error_log('[SETUP-DEBUG] Listener: ' . $listenerClass);
+            }
+        }
     }
 
     public function testLeadSeesContentWhenPrimaryCompanyIsInSegment(): void
