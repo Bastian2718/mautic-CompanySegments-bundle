@@ -23,8 +23,11 @@ class DynamicContentSubscriberTest extends TestCase
     protected function setUp(): void
     {
         $this->companySegmentRepository = $this->createMock(CompanySegmentRepository::class);
-        $this->companyLeadRepository = $this->createMock(CompanyLeadRepository::class);
-        $this->config = $this->createMock(Config::class);
+        $this->companyLeadRepository    = $this->getMockBuilder(CompanyLeadRepository::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['getPrimaryCompanyByLeadId'])
+            ->getMock();
+        $this->config                   = $this->createMock(Config::class);
 
         $this->subscriber = new DynamicContentSubscriber(
             $this->companySegmentRepository,
@@ -37,14 +40,14 @@ class DynamicContentSubscriberTest extends TestCase
     {
         $this->config->method('isPublished')->willReturn(false);
 
-        $lead = $this->createMock(Lead::class);
+        $lead    = $this->createMock(Lead::class);
         $filters = [
             [
-                'field' => 'company_segments',
-                'object' => 'company_segments',
-                'type' => 'company_segments',
+                'field'    => 'company_segments',
+                'object'   => 'company_segments',
+                'type'     => 'company_segments',
                 'operator' => 'in',
-                'filter' => [1, 2],
+                'filter'   => [1, 2],
             ],
         ];
 
@@ -58,14 +61,14 @@ class DynamicContentSubscriberTest extends TestCase
     {
         $this->config->method('isPublished')->willReturn(true);
 
-        $lead = $this->createMock(Lead::class);
+        $lead    = $this->createMock(Lead::class);
         $filters = [
             [
-                'field' => 'email',
-                'object' => 'lead',
-                'type' => 'text',
+                'field'    => 'email',
+                'object'   => 'lead',
+                'type'     => 'text',
                 'operator' => 'like',
-                'filter' => 'test@example.com',
+                'filter'   => 'test@example.com',
             ],
         ];
 
@@ -92,11 +95,11 @@ class DynamicContentSubscriberTest extends TestCase
 
         $filters = [
             [
-                'field' => 'company_segments',
-                'object' => 'company_segments',
-                'type' => 'company_segments',
+                'field'    => 'company_segments',
+                'object'   => 'company_segments',
+                'type'     => 'company_segments',
                 'operator' => 'in',
-                'filter' => [1, 2],
+                'filter'   => [1, 2],
             ],
         ];
 
@@ -124,11 +127,11 @@ class DynamicContentSubscriberTest extends TestCase
 
         $filters = [
             [
-                'field' => 'company_segments',
-                'object' => 'company_segments',
-                'type' => 'company_segments',
+                'field'    => 'company_segments',
+                'object'   => 'company_segments',
+                'type'     => 'company_segments',
                 'operator' => 'in',
-                'filter' => [1, 2],
+                'filter'   => [1, 2],
             ],
         ];
 
@@ -156,11 +159,11 @@ class DynamicContentSubscriberTest extends TestCase
 
         $filters = [
             [
-                'field' => 'company_segments',
-                'object' => 'company_segments',
-                'type' => 'company_segments',
+                'field'    => 'company_segments',
+                'object'   => 'company_segments',
+                'type'     => 'company_segments',
                 'operator' => '!in',
-                'filter' => [1, 2],
+                'filter'   => [1, 2],
             ],
         ];
 
@@ -184,11 +187,11 @@ class DynamicContentSubscriberTest extends TestCase
 
         $filters = [
             [
-                'field' => 'company_segments',
-                'object' => 'company_segments',
-                'type' => 'company_segments',
+                'field'    => 'company_segments',
+                'object'   => 'company_segments',
+                'type'     => 'company_segments',
                 'operator' => 'empty',
-                'filter' => null,
+                'filter'   => null,
             ],
         ];
 
@@ -216,11 +219,11 @@ class DynamicContentSubscriberTest extends TestCase
 
         $filters = [
             [
-                'field' => 'company_segments',
-                'object' => 'company_segments',
-                'type' => 'company_segments',
+                'field'    => 'company_segments',
+                'object'   => 'company_segments',
+                'type'     => 'company_segments',
                 'operator' => 'empty',
-                'filter' => null,
+                'filter'   => null,
             ],
         ];
 
@@ -248,11 +251,11 @@ class DynamicContentSubscriberTest extends TestCase
 
         $filters = [
             [
-                'field' => 'company_segments',
-                'object' => 'company_segments',
-                'type' => 'company_segments',
+                'field'    => 'company_segments',
+                'object'   => 'company_segments',
+                'type'     => 'company_segments',
                 'operator' => '!empty',
-                'filter' => null,
+                'filter'   => null,
             ],
         ];
 
@@ -276,11 +279,11 @@ class DynamicContentSubscriberTest extends TestCase
 
         $filters = [
             [
-                'field' => 'company_segments',
-                'object' => 'company_segments',
-                'type' => 'company_segments',
+                'field'    => 'company_segments',
+                'object'   => 'company_segments',
+                'type'     => 'company_segments',
                 'operator' => '!empty',
-                'filter' => null,
+                'filter'   => null,
             ],
         ];
 

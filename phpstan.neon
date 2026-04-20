@@ -73,3 +73,9 @@ parameters:
         - message: '#Parameter \#2 \$haystack of method PHPUnit\\Framework\\Assert::assertString(Contains|NotContains)String\(\) expects string, string\|false given#'
           path: Tests/Functional/EventListener/DynamicContentSubscriberFunctionalTest.php
           reportUnmatched: false
+        - message: '#Cannot call method (method|willReturn|willThrowException|with)\(\) on PHPUnit\\Framework\\MockObject\\(MockObject|Builder\\InvocationMocker)#'
+          path: Tests/EventListener/DynamicContentSubscriberTest.php
+          reportUnmatched: false
+        - message: '#(expects|given).*PHPUnit\\Framework\\MockObject\\MockObject#'
+          path: Tests/EventListener/DynamicContentSubscriberTest.php
+          reportUnmatched: false
