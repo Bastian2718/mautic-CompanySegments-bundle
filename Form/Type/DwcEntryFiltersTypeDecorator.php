@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Form\Type;
 
-use Doctrine\DBAL\Connection;
 use Mautic\DynamicContentBundle\Form\Type\DwcEntryFiltersType;
 use Mautic\LeadBundle\Entity\RegexTrait;
 use Mautic\LeadBundle\Model\ListModel;
@@ -29,23 +28,17 @@ class DwcEntryFiltersTypeDecorator extends DwcEntryFiltersType
     private TranslatorInterface $translatorLocal;
 
     /**
-     * @var array<string, int>
+     * @var array<string, int>|null
      */
-    private array $companySegmentChoices;
+    private ?array $companySegmentChoices = null;
 
     public function __construct(
         TranslatorInterface $translator,
         ListModel $listModel,
         private CompanySegmentModel $companySegmentModel,
-        ?Connection $connection = null,
     ) {
         parent::__construct($translator, $listModel);
-        $this->translatorLocal       = $translator;
-        $this->companySegmentChoices = $this->getCompanySegmentChoices();
-
-        if (null !== $connection) {
-            $this->setConnection($connection);
-        }
+        $this->translatorLocal = $translator;
     }
 
     public function getBlockPrefix(): string
@@ -57,7 +50,7 @@ class DwcEntryFiltersTypeDecorator extends DwcEntryFiltersType
     {
         parent::configureOptions($resolver);
 
-        $resolver->setDefault('companySegments', $this->companySegmentChoices);
+        $resolver->setDefault('companySegments', $this->getCompanySegmentChoices());
         $resolver->setDefined('companySegments');
     }
 
@@ -194,14 +187,18 @@ class DwcEntryFiltersTypeDecorator extends DwcEntryFiltersType
      */
     private function getCompanySegmentChoices(): array
     {
-        $items   = $this->companySegmentModel->getCompanySegments();
-        $choices = [];
+        if (null === $this->companySegmentChoices) {
+            $items   = $this->companySegmentModel->getCompanySegments();
+            $choices = [];
 
-        foreach ($items as $item) {
-            \assert(is_array($item));
-            $choices[$item['name']] = (int) $item['id'];
+            foreach ($items as $item) {
+                \assert(is_array($item));
+                $choices[$item['name']] = (int) $item['id'];
+            }
+
+            $this->companySegmentChoices = $choices;
         }
 
-        return $choices;
+        return $this->companySegmentChoices;
     }
 }

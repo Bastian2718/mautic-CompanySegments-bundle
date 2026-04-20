@@ -210,19 +210,7 @@ SQL;
      */
     public function isNotCompanyInSegments(int $companyId, array $expectedSegmentIds): bool
     {
-        $segmentIds = $this->fetchCompanyToSegmentIdsRelationships($companyId, $expectedSegmentIds);
-
-        if ([] === $segmentIds) {
-            return true;
-        }
-
-        foreach ($expectedSegmentIds as $expectedSegmentId) {
-            if (in_array($expectedSegmentId, $segmentIds, true)) {
-                return false;
-            }
-        }
-
-        return true;
+        return !$this->isCompanyInSegments($companyId, $expectedSegmentIds);
     }
 
     /**
@@ -234,6 +222,10 @@ SQL;
      */
     private function fetchCompanyToSegmentIdsRelationships(int $companyId, array $expectedSegmentIds): array
     {
+        if ([] === $expectedSegmentIds) {
+            return [];
+        }
+
         $tableName = MAUTIC_TABLE_PREFIX.'companies_segments';
 
         $sql = <<<SQL
@@ -256,6 +248,6 @@ SQL;
             )
             ->fetchFirstColumn();
 
-        return $result;
+        return array_map('intval', $result);
     }
 }
