@@ -695,6 +695,509 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         self::assertSame($company->getId(), $companiesInSegment[0]->getCompany()->getId());
     }
 
+    /**
+     * Tests that a lead segment with combined IN and !in filters on company_segments
+     * correctly includes only leads whose company is in one segment but not another.
+     *
+     * Setup:
+     *   Company Segment A (test_segment_a) : Manually contains Globo, SBT
+     *   Company Segment B (test_segment_b) : Manually contains SBT
+     *
+     * Company-Lead links:
+     *   +--------+-------+
+     *   | Company| Leads |
+     *   +--------+-------+
+     *   | Globo  | 1, 2  |
+     *   | SBT    | 3, 4  |
+     *   | Record | 5     |
+     *   +--------+-------+
+     *
+     * Lead Segment Filter:
+     *   company_segments IN [Segment A] AND company_segments !IN [Segment B]
+     *
+     * After mautic:segments:update:
+     *   Lead Segment should contain leads 1 and 2 (Globo leads).
+     *   Globo is in Segment A and not in Segment B.
+     *   SBT leads are excluded because SBT is in Segment B.
+     *   Record lead is excluded because Record is not in Segment A.
+     */
+    public function testUpdateLeadSegmentWithCompanySegmentsInAndNotIn(): void
+    {
+        $companyGlobo  = $this->addCompany('Globo', 'contact@globo.com');
+        $companySbt    = $this->addCompany('SBT', 'contact@sbt.com');
+        $companyRecord = $this->addCompany('Record', 'contact@record.com');
+
+        $leadOne   = $this->createLead('John Globo Doe', 'leadone@mautic.com');
+        $leadTwo   = $this->createLead('Brian Doe', 'leadtwo@mautic.com');
+        $leadThree = $this->createLead('Mat Doe', 'leadthree@mautic.com');
+        $leadFour  = $this->createLead('Braw Doe', 'leadfour@mautic.com');
+        $leadFive  = $this->createLead('Record Doe', 'leadfive@mautic.com');
+
+        $this->addLeadToCompany($companyGlobo, $leadOne);
+        $this->addLeadToCompany($companyGlobo, $leadTwo);
+        $this->addLeadToCompany($companySbt, $leadThree);
+        $this->addLeadToCompany($companySbt, $leadFour);
+        $this->addLeadToCompany($companyRecord, $leadFive);
+
+        $totalCompanyLeadsBefore = $this->em->getRepository(CompanyLead::class)->findAll();
+        self::assertCount(5, $totalCompanyLeadsBefore);
+
+        $companySegmentA = $this->createCompanySegment('Test Company Segment A', 'test_segment_a');
+        $companySegmentB = $this->createCompanySegment('Test Company Segment B', 'test_segment_b');
+
+        // Add Globo and SBT to Segment A
+        $this->addCompanyToSegments($companyGlobo, $companySegmentA);
+        $this->addCompanyToSegments($companySbt, $companySegmentA);
+
+        // Add SBT to Segment B
+        $this->addCompanyToSegments($companySbt, $companySegmentB);
+
+        $resultCompaniesSegmentsBefore = $this->em->getRepository(CompaniesSegments::class)->findAll();
+        self::assertCount(3, $resultCompaniesSegmentsBefore);
+
+        $filtersToLeadSegment = [
+            [
+                'glue'       => 'and',
+                'operator'   => 'in',
+                'properties' => [
+                    'filter' => [$companySegmentA->getId()],
+                ],
+                'field'  => 'company_segments',
+                'type'   => 'company_segments',
+                'object' => 'company_segments',
+            ],
+            [
+                'glue'       => 'and',
+                'operator'   => '!in',
+                'properties' => [
+                    'filter' => [$companySegmentB->getId()],
+                ],
+                'field'  => 'company_segments',
+                'type'   => 'company_segments',
+                'object' => 'company_segments',
+            ],
+        ];
+
+        $leadSegment = $this->createLeadSegment('Test Segment In And Not In', 'test_segment_in_not_in', true, $filtersToLeadSegment);
+        $leadListModel = static::getContainer()->get('mautic.lead.model.list');
+        assert($leadListModel instanceof \Mautic\LeadBundle\Model\ListModel);
+
+        // Before running the segment update command, no leads should be in the segment yet
+        $leadListTotalBefore = $leadListModel->getListLeadRepository()->findAll();
+        self::assertCount(0, $leadListTotalBefore);
+
+        // Run Mautic contact segment update command
+        $commandTester = $this->testSymfonyCommand('mautic:segments:update');
+        $commandTester->assertCommandIsSuccessful();
+
+        self::assertStringContainsString('2 total contact(s) to be added', $commandTester->getDisplay());
+
+        $leadListTotalAfter = $leadListModel->getListLeadRepository()->findAll();
+        self::assertCount(2, $leadListTotalAfter);
+    }
+
+    /**
+     * Tests that a company auto-added to a filter-based segment is removed as an orphan
+     * when it no longer matches the source segment filter.
+     *
+     * Setup:
+     *   Company Segment A (test_segment_a) : Manually contains Globo
+     *   Company Segment B (test_segment_b) : Filter = company_segments IN [Segment A]
+     *
+     * Step 1 - leuchtfeuer:abm:segments-update:
+     *   Globo is auto-added to Segment B.
+     *
+     * Step 2 - Remove Globo from Segment A.
+     *
+     * Step 3 - leuchtfeuer:abm:segments-update:
+     *   Globo is removed from Segment B as an orphan.
+     */
+    public function testAutoAddedCompanyBySegmentFilterRemovedAsOrphanWhenSourceSegmentLost(): void
+    {
+        $companyGlobo = $this->addCompany('Globo', 'contact@globo.com');
+
+        $companySegmentA = $this->createCompanySegment('Test Segment A', 'test_segment_a');
+        $this->addCompanyToSegments($companyGlobo, $companySegmentA);
+
+        $filters = [
+            'filters' => [
+                'glue'       => 'and',
+                'operator'   => 'in',
+                'properties' => [
+                    'filter' => [$companySegmentA->getId()],
+                ],
+                'field'  => 'company_segments',
+                'type'   => 'company_segments',
+                'object' => 'company_segments',
+            ],
+        ];
+        $companySegmentB = $this->createCompanySegment('Test Segment B', 'test_segment_b', true, $filters);
+
+        // First run: Globo should be auto-added to Segment B
+        $commandTester = $this->testSymfonyCommand('leuchtfeuer:abm:segments-update');
+        $commandTester->assertCommandIsSuccessful();
+        self::assertStringContainsString('1 total company(es) to be added', $commandTester->getDisplay());
+
+        $companiesInSegmentB = $this->em->getRepository(CompaniesSegments::class)
+            ->findBy(['companySegment' => $companySegmentB]);
+        self::assertCount(1, $companiesInSegmentB);
+
+        // Remove Globo from Segment A
+        $segmentARow = $this->em->getRepository(CompaniesSegments::class)
+            ->findOneBy(['company' => $companyGlobo, 'companySegment' => $companySegmentA]);
+        self::assertNotNull($segmentARow);
+        $this->em->remove($segmentARow);
+        $this->em->flush();
+
+        // Second run: Globo should be removed from Segment B as an orphan
+        $commandTester = $this->testSymfonyCommand('leuchtfeuer:abm:segments-update');
+        $commandTester->assertCommandIsSuccessful();
+        self::assertStringContainsString('1 total company(es) to be removed', $commandTester->getDisplay());
+
+        $companiesInSegmentBAfter = $this->em->getRepository(CompaniesSegments::class)
+            ->findBy(['companySegment' => $companySegmentB]);
+        self::assertCount(0, $companiesInSegmentBAfter);
+    }
+
+    /**
+     * Tests that a company manually removed from a filter-based segment is not
+     * re-added by the update command as long as it still matches the filter.
+     *
+     * Setup:
+     *   Company Segment A (test_segment_a) : Manually contains Globo
+     *   Company Segment B (test_segment_b) : Filter = company_segments IN [Segment A]
+     *
+     * Before command:
+     *   Globo is pre-linked to Segment B with manually_removed = true.
+     *
+     * After leuchtfeuer:abm:segments-update:
+     *   Globo must NOT be re-added to Segment B. The manually_removed row persists.
+     */
+    public function testManuallyRemovedCompanyNotReaddedByCompanySegmentFilter(): void
+    {
+        $companyGlobo = $this->addCompany('Globo', 'contact@globo.com');
+
+        $companySegmentA = $this->createCompanySegment('Test Segment A', 'test_segment_a');
+        $this->addCompanyToSegments($companyGlobo, $companySegmentA);
+
+        $filters = [
+            'filters' => [
+                'glue'       => 'and',
+                'operator'   => 'in',
+                'properties' => [
+                    'filter' => [$companySegmentA->getId()],
+                ],
+                'field'  => 'company_segments',
+                'type'   => 'company_segments',
+                'object' => 'company_segments',
+            ],
+        ];
+        $companySegmentB = $this->createCompanySegment('Test Segment B', 'test_segment_b', true, $filters);
+
+        // Pre-link Globo to Segment B as manually removed
+        $this->addCompanyToSegments($companyGlobo, $companySegmentB, false, true);
+
+        $commandTester = $this->testSymfonyCommand('leuchtfeuer:abm:segments-update');
+        $commandTester->assertCommandIsSuccessful();
+
+        // Globo should NOT be added (0 added, 0 removed)
+        self::assertStringContainsString('0 total company(es) to be added', $commandTester->getDisplay());
+        self::assertStringContainsString('0 total company(es) to be removed', $commandTester->getDisplay());
+
+        $companiesInSegmentB = $this->em->getRepository(CompaniesSegments::class)
+            ->findBy(['companySegment' => $companySegmentB]);
+        self::assertCount(1, $companiesInSegmentB);
+        self::assertTrue($companiesInSegmentB[0]->isManuallyRemoved());
+        self::assertFalse($companiesInSegmentB[0]->isManuallyAdded());
+    }
+
+    /**
+     * Tests that a manually added company remains in a filter-based segment even when
+     * it no longer matches the segment's filter (source segment membership lost).
+     *
+     * Setup:
+     *   Company Segment A (test_segment_a) : Manually contains Globo
+     *   Company Segment B (test_segment_b) : Filter = company_segments IN [Segment A]
+     *
+     * Before command:
+     *   Globo is manually added to Segment B.
+     *
+     * Step 1 - Remove Globo from Segment A.
+     *
+     * Step 2 - leuchtfeuer:abm:segments-update:
+     *   Globo should remain in Segment B because it was manually added.
+     */
+    public function testManuallyAddedCompanyStaysInSegmentDespiteCompanySegmentFilterChange(): void
+    {
+        $companyGlobo = $this->addCompany('Globo', 'contact@globo.com');
+
+        $companySegmentA = $this->createCompanySegment('Test Segment A', 'test_segment_a');
+        $this->addCompanyToSegments($companyGlobo, $companySegmentA);
+
+        $filters = [
+            'filters' => [
+                'glue'       => 'and',
+                'operator'   => 'in',
+                'properties' => [
+                    'filter' => [$companySegmentA->getId()],
+                ],
+                'field'  => 'company_segments',
+                'type'   => 'company_segments',
+                'object' => 'company_segments',
+            ],
+        ];
+        $companySegmentB = $this->createCompanySegment('Test Segment B', 'test_segment_b', true, $filters);
+
+        // Manually add Globo to Segment B
+        $this->addCompanyToSegments($companyGlobo, $companySegmentB, true, false);
+
+        // Remove Globo from Segment A
+        $segmentARow = $this->em->getRepository(CompaniesSegments::class)
+            ->findOneBy(['company' => $companyGlobo, 'companySegment' => $companySegmentA]);
+        self::assertNotNull($segmentARow);
+        $this->em->remove($segmentARow);
+        $this->em->flush();
+
+        $commandTester = $this->testSymfonyCommand('leuchtfeuer:abm:segments-update');
+        $commandTester->assertCommandIsSuccessful();
+
+        // No additions or removals expected
+        self::assertStringContainsString('0 total company(es) to be added', $commandTester->getDisplay());
+        self::assertStringContainsString('0 total company(es) to be removed', $commandTester->getDisplay());
+
+        $companiesInSegmentB = $this->em->getRepository(CompaniesSegments::class)
+            ->findBy(['companySegment' => $companySegmentB]);
+        self::assertCount(1, $companiesInSegmentB);
+        self::assertTrue($companiesInSegmentB[0]->isManuallyAdded());
+        self::assertFalse($companiesInSegmentB[0]->isManuallyRemoved());
+        self::assertSame($companyGlobo->getId(), $companiesInSegmentB[0]->getCompany()->getId());
+    }
+
+    /**
+     * Tests that a lead segment with company_segments IN filter excludes leads whose
+     * company is manually removed from the referenced company segment.
+     *
+     * Setup:
+     *   Company Segment (test_revenue_segment_lead) : Filter = companyannual_revenue >= 100000
+     *   Globo has revenue 200000 and is auto-added, then manually removed.
+     *   Lead 1 belongs to Globo.
+     *
+     * After mautic:segments:update:
+     *   Lead Segment (company_segments IN [Segment]) should contain 0 leads.
+     */
+    public function testLeadSegmentExcludesManuallyRemovedCompanyFromCompanySegment(): void
+    {
+        $companyGlobo = $this->addCompany('Globo', 'contact@globo.com');
+        $companyGlobo->addUpdatedField('companyannual_revenue', '200000');
+        $companyModel = static::getContainer()->get('mautic.lead.model.company');
+        \assert($companyModel instanceof \Mautic\LeadBundle\Model\CompanyModel);
+        $companyModel->saveEntity($companyGlobo);
+
+        $filters = [
+            'filters' => [
+                'glue'       => 'and',
+                'operator'   => 'gte',
+                'properties' => [
+                    'filter' => '100000',
+                ],
+                'field'  => 'companyannual_revenue',
+                'type'   => 'number',
+                'object' => 'company',
+            ],
+        ];
+        $companySegment = $this->createCompanySegment('Revenue Segment', 'test_revenue_segment_lead', true, $filters);
+
+        // Auto-add Globo via segment update
+        $commandTester = $this->testSymfonyCommand('leuchtfeuer:abm:segments-update');
+        $commandTester->assertCommandIsSuccessful();
+
+        // Mark as manually removed via DQL to avoid detached entity issues after command run
+        $updated = $this->em->createQueryBuilder()
+            ->update(CompaniesSegments::class, 'cs')
+            ->set('cs.manuallyRemoved', ':true')
+            ->where('cs.company = :company')
+            ->andWhere('cs.companySegment = :segment')
+            ->setParameter('true', true)
+            ->setParameter('company', $companyGlobo->getId())
+            ->setParameter('segment', $companySegment->getId())
+            ->getQuery()
+            ->execute();
+        self::assertSame(1, $updated);
+
+        $leadOne = $this->createLead('John Globo Doe', 'leadone@mautic.com');
+        $this->addLeadToCompany($companyGlobo, $leadOne);
+
+        $leadFilters = [
+            [
+                'glue'       => 'and',
+                'operator'   => 'in',
+                'properties' => [
+                    'filter' => [$companySegment->getId()],
+                ],
+                'field'  => 'company_segments',
+                'type'   => 'company_segments',
+                'object' => 'company_segments',
+            ],
+        ];
+        $this->createLeadSegment('Lead Segment IN', 'test_lead_segment_in', true, $leadFilters);
+
+        $leadListModel = static::getContainer()->get('mautic.lead.model.list');
+        assert($leadListModel instanceof \Mautic\LeadBundle\Model\ListModel);
+
+        $commandTester = $this->testSymfonyCommand('mautic:segments:update');
+        $commandTester->assertCommandIsSuccessful();
+
+        $leadListTotal = $leadListModel->getListLeadRepository()->findAll();
+        self::assertCount(0, $leadListTotal);
+    }
+
+    /**
+     * Tests that a lead segment with company_segments IN filter includes leads whose
+     * company was manually added to the referenced company segment even when it does
+     * not match the segment's filter.
+     *
+     * Setup:
+     *   Company Segment (test_revenue_segment_lead_add) : Filter = companyannual_revenue >= 100000
+     *   Globo has revenue 50000 and is manually added to the segment.
+     *   Lead 1 belongs to Globo.
+     *
+     * After mautic:segments:update:
+     *   Lead Segment (company_segments IN [Segment]) should contain 1 lead.
+     */
+    public function testLeadSegmentIncludesManuallyAddedCompanyInCompanySegment(): void
+    {
+        $companyGlobo = $this->addCompany('Globo', 'contact@globo.com');
+        $companyGlobo->addUpdatedField('companyannual_revenue', '50000');
+        $companyModel = static::getContainer()->get('mautic.lead.model.company');
+        \assert($companyModel instanceof \Mautic\LeadBundle\Model\CompanyModel);
+        $companyModel->saveEntity($companyGlobo);
+
+        $filters = [
+            'filters' => [
+                'glue'       => 'and',
+                'operator'   => 'gte',
+                'properties' => [
+                    'filter' => '100000',
+                ],
+                'field'  => 'companyannual_revenue',
+                'type'   => 'number',
+                'object' => 'company',
+            ],
+        ];
+        $companySegment = $this->createCompanySegment('Revenue Segment', 'test_revenue_segment_lead_add', true, $filters);
+
+        // Manually add Globo even though it does not match the filter
+        $this->addCompanyToSegments($companyGlobo, $companySegment, true, false);
+
+        $leadOne = $this->createLead('John Globo Doe', 'leadone@mautic.com');
+        $this->addLeadToCompany($companyGlobo, $leadOne);
+
+        $leadFilters = [
+            [
+                'glue'       => 'and',
+                'operator'   => 'in',
+                'properties' => [
+                    'filter' => [$companySegment->getId()],
+                ],
+                'field'  => 'company_segments',
+                'type'   => 'company_segments',
+                'object' => 'company_segments',
+            ],
+        ];
+        $this->createLeadSegment('Lead Segment IN Manual', 'test_lead_segment_in_manual', true, $leadFilters);
+
+        $leadListModel = static::getContainer()->get('mautic.lead.model.list');
+        assert($leadListModel instanceof \Mautic\LeadBundle\Model\ListModel);
+
+        $commandTester = $this->testSymfonyCommand('mautic:segments:update');
+        $commandTester->assertCommandIsSuccessful();
+
+        self::assertStringContainsString('1 total contact(s) to be added', $commandTester->getDisplay());
+
+        $leadListTotal = $leadListModel->getListLeadRepository()->findAll();
+        self::assertCount(1, $leadListTotal);
+    }
+
+    /**
+     * Tests that a lead segment with company_segments !in filter includes leads whose
+     * company was manually removed from the referenced company segment.
+     *
+     * Setup:
+     *   Company Segment (test_revenue_segment_lead_notin) : Filter = companyannual_revenue >= 100000
+     *   Globo has revenue 200000 and is auto-added, then manually removed.
+     *   Lead 1 belongs to Globo.
+     *
+     * After mautic:segments:update:
+     *   Lead Segment (company_segments !IN [Segment]) should contain 1 lead.
+     */
+    public function testLeadSegmentIncludesManuallyRemovedCompanyViaNotInFilter(): void
+    {
+        $companyGlobo = $this->addCompany('Globo', 'contact@globo.com');
+        $companyGlobo->addUpdatedField('companyannual_revenue', '200000');
+        $companyModel = static::getContainer()->get('mautic.lead.model.company');
+        \assert($companyModel instanceof \Mautic\LeadBundle\Model\CompanyModel);
+        $companyModel->saveEntity($companyGlobo);
+
+        $filters = [
+            'filters' => [
+                'glue'       => 'and',
+                'operator'   => 'gte',
+                'properties' => [
+                    'filter' => '100000',
+                ],
+                'field'  => 'companyannual_revenue',
+                'type'   => 'number',
+                'object' => 'company',
+            ],
+        ];
+        $companySegment = $this->createCompanySegment('Revenue Segment', 'test_revenue_segment_lead_notin', true, $filters);
+
+        // Auto-add Globo via segment update
+        $commandTester = $this->testSymfonyCommand('leuchtfeuer:abm:segments-update');
+        $commandTester->assertCommandIsSuccessful();
+
+        // Mark as manually removed via DQL to avoid detached entity issues after command run
+        $updated = $this->em->createQueryBuilder()
+            ->update(CompaniesSegments::class, 'cs')
+            ->set('cs.manuallyRemoved', ':true')
+            ->where('cs.company = :company')
+            ->andWhere('cs.companySegment = :segment')
+            ->setParameter('true', true)
+            ->setParameter('company', $companyGlobo->getId())
+            ->setParameter('segment', $companySegment->getId())
+            ->getQuery()
+            ->execute();
+        self::assertSame(1, $updated);
+
+        $leadOne = $this->createLead('John Globo Doe', 'leadone@mautic.com');
+        $this->addLeadToCompany($companyGlobo, $leadOne);
+
+        $leadFilters = [
+            [
+                'glue'       => 'and',
+                'operator'   => '!in',
+                'properties' => [
+                    'filter' => [$companySegment->getId()],
+                ],
+                'field'  => 'company_segments',
+                'type'   => 'company_segments',
+                'object' => 'company_segments',
+            ],
+        ];
+        $this->createLeadSegment('Lead Segment NOT IN', 'test_lead_segment_notin', true, $leadFilters);
+
+        $leadListModel = static::getContainer()->get('mautic.lead.model.list');
+        assert($leadListModel instanceof \Mautic\LeadBundle\Model\ListModel);
+
+        $commandTester = $this->testSymfonyCommand('mautic:segments:update');
+        $commandTester->assertCommandIsSuccessful();
+
+        self::assertStringContainsString('1 total contact(s) to be added', $commandTester->getDisplay());
+
+        $leadListTotal = $leadListModel->getListLeadRepository()->findAll();
+        self::assertCount(1, $leadListTotal);
+    }
+
     private function createLead(string $name, string $email, ?Company $companyName = null): Lead
     {
         $lead = new Lead();
