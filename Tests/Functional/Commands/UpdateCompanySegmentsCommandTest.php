@@ -1198,6 +1198,73 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         self::assertCount(1, $leadListTotal);
     }
 
+    /**
+     * Tests that a lead segment with company_segments IN [Segment A, Segment B]
+     * correctly includes leads from companies in either segment (OR logic).
+     *
+     * Setup:
+     *   Company Segment A (test_segment_a_or) : Manually contains Globo
+     *   Company Segment B (test_segment_b_or) : Manually contains SBT
+     *
+     * Company-Lead links:
+     *   +--------+-------+
+     *   | Company| Leads |
+     *   +--------+-------+
+     *   | Globo  | 1     |
+     *   | SBT    | 2     |
+     *   | Record | 3     |
+     *   +--------+-------+
+     *
+     * After mautic:segments:update:
+     *   Lead Segment should contain leads 1 and 2.
+     *   Lead 3 is excluded because Record is not in either segment.
+     */
+    public function testLeadSegmentWithMultipleCompanySegmentsInOrLogic(): void
+    {
+        $companyGlobo  = $this->addCompany('Globo', 'contact@globo.com');
+        $companySbt    = $this->addCompany('SBT', 'contact@sbt.com');
+        $companyRecord = $this->addCompany('Record', 'contact@record.com');
+
+        $leadOne   = $this->createLead('John Globo Doe', 'leadone@mautic.com');
+        $leadTwo   = $this->createLead('Brian Doe', 'leadtwo@mautic.com');
+        $leadThree = $this->createLead('Mat Doe', 'leadthree@mautic.com');
+
+        $this->addLeadToCompany($companyGlobo, $leadOne);
+        $this->addLeadToCompany($companySbt, $leadTwo);
+        $this->addLeadToCompany($companyRecord, $leadThree);
+
+        $companySegmentA = $this->createCompanySegment('Test Segment A OR', 'test_segment_a_or');
+        $companySegmentB = $this->createCompanySegment('Test Segment B OR', 'test_segment_b_or');
+
+        $this->addCompanyToSegments($companyGlobo, $companySegmentA);
+        $this->addCompanyToSegments($companySbt, $companySegmentB);
+
+        $leadFilters = [
+            [
+                'glue'       => 'and',
+                'operator'   => 'in',
+                'properties' => [
+                    'filter' => [$companySegmentA->getId(), $companySegmentB->getId()],
+                ],
+                'field'  => 'company_segments',
+                'type'   => 'company_segments',
+                'object' => 'company_segments',
+            ],
+        ];
+        $this->createLeadSegment('Lead Segment Multi OR', 'test_lead_segment_multi_or', true, $leadFilters);
+
+        $leadListModel = static::getContainer()->get('mautic.lead.model.list');
+        assert($leadListModel instanceof \Mautic\LeadBundle\Model\ListModel);
+
+        $commandTester = $this->testSymfonyCommand('mautic:segments:update');
+        $commandTester->assertCommandIsSuccessful();
+
+        self::assertStringContainsString('2 total contact(s) to be added', $commandTester->getDisplay());
+
+        $leadListTotal = $leadListModel->getListLeadRepository()->findAll();
+        self::assertCount(2, $leadListTotal);
+    }
+
     private function createLead(string $name, string $email, ?Company $companyName = null): Lead
     {
         $lead = new Lead();
