@@ -1265,6 +1265,139 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         self::assertCount(2, $leadListTotal);
     }
 
+    /**
+     * Tests that the company_segments IN filter only matches the lead's PRIMARY company.
+     * A non-primary company link to a segment must NOT cause the lead to match.
+     *
+     * Setup:
+     *   Company Segment A (test_segment_primary_only) : Manually contains Globo
+     *
+     * Company-Lead links:
+     *   +--------+-------+-----------+
+     *   | Company| Lead  | is_primary|
+     *   +--------+-------+-----------+
+     *   | Globo  | 1     | false     |  <-- secondary, in Segment A
+     *   | SBT    | 1     | true      |  <-- primary, NOT in Segment A
+     *   +--------+-------+-----------+
+     *
+     * Lead Segment Filter:
+     *   company_segments IN [Segment A]
+     *
+     * After mautic:segments:update:
+     *   Lead Segment must NOT contain lead 1 (its primary company SBT is not in Segment A).
+     */
+    public function testLeadSegmentInFilterMatchesPrimaryCompanyOnly(): void
+    {
+        $companyGlobo = $this->addCompany('Globo', 'contact@globo.com');
+        $companySbt   = $this->addCompany('SBT', 'contact@sbt.com');
+
+        $leadOne = $this->createLead('John Doe', 'leadone@mautic.com');
+
+        $this->addLeadToCompany($companySbt, $leadOne, true);
+        $this->addLeadToCompany($companyGlobo, $leadOne, false);
+
+        $companySegmentA = $this->createCompanySegment('Test Segment Primary Only', 'test_segment_primary_only');
+        $this->addCompanyToSegments($companyGlobo, $companySegmentA);
+
+        $leadFilters = [
+            [
+                'glue'       => 'and',
+                'operator'   => 'in',
+                'properties' => [
+                    'filter' => [$companySegmentA->getId()],
+                ],
+                'field'  => 'company_segments',
+                'type'   => 'company_segments',
+                'object' => 'company_segments',
+            ],
+        ];
+        $this->createLeadSegment('Lead Segment Primary Only', 'test_lead_segment_primary_only', true, $leadFilters);
+
+        $leadListModel = static::getContainer()->get('mautic.lead.model.list');
+        assert($leadListModel instanceof \Mautic\LeadBundle\Model\ListModel);
+
+        $commandTester = $this->testSymfonyCommand('mautic:segments:update');
+        $commandTester->assertCommandIsSuccessful();
+
+        $leadListTotal = $leadListModel->getListLeadRepository()->findAll();
+        self::assertCount(0, $leadListTotal);
+    }
+
+    /**
+     * Tests that a lead with no primary company is excluded by both IN and !in filters
+     * on company_segments. The is_primary = 1 join in the outer query enforces this.
+     *
+     * Setup:
+     *   Company Segment A (test_segment_no_primary) : Manually contains Globo
+     *
+     * Company-Lead links:
+     *   +--------+-------+-----------+
+     *   | Company| Lead  | is_primary|
+     *   +--------+-------+-----------+
+     *   | Globo  | 1     | false     |  <-- non-primary only
+     *   +--------+-------+-----------+
+     *   Lead 2 has no company link at all.
+     *
+     * Lead Segment 1 Filter: company_segments IN [Segment A]
+     * Lead Segment 2 Filter: company_segments !IN [Segment A]
+     *
+     * After mautic:segments:update:
+     *   Both lead segments must contain 0 leads.
+     *   Leads without a primary company can neither match IN nor !in.
+     */
+    public function testLeadSegmentExcludesLeadsWithoutPrimaryCompany(): void
+    {
+        $companyGlobo = $this->addCompany('Globo', 'contact@globo.com');
+
+        $leadOne = $this->createLead('No Primary', 'leadone@mautic.com');
+        $leadTwo = $this->createLead('No Company', 'leadtwo@mautic.com');
+
+        $this->addLeadToCompany($companyGlobo, $leadOne, false);
+
+        $companySegmentA = $this->createCompanySegment('Test Segment No Primary', 'test_segment_no_primary');
+        $this->addCompanyToSegments($companyGlobo, $companySegmentA);
+
+        $leadFiltersIn = [
+            [
+                'glue'       => 'and',
+                'operator'   => 'in',
+                'properties' => [
+                    'filter' => [$companySegmentA->getId()],
+                ],
+                'field'  => 'company_segments',
+                'type'   => 'company_segments',
+                'object' => 'company_segments',
+            ],
+        ];
+        $leadSegmentIn = $this->createLeadSegment('Lead Segment No Primary IN', 'test_lead_segment_no_primary_in', true, $leadFiltersIn);
+
+        $leadFiltersNotIn = [
+            [
+                'glue'       => 'and',
+                'operator'   => '!in',
+                'properties' => [
+                    'filter' => [$companySegmentA->getId()],
+                ],
+                'field'  => 'company_segments',
+                'type'   => 'company_segments',
+                'object' => 'company_segments',
+            ],
+        ];
+        $leadSegmentNotIn = $this->createLeadSegment('Lead Segment No Primary NOT IN', 'test_lead_segment_no_primary_notin', true, $leadFiltersNotIn);
+
+        $leadListModel = static::getContainer()->get('mautic.lead.model.list');
+        assert($leadListModel instanceof \Mautic\LeadBundle\Model\ListModel);
+
+        $commandTester = $this->testSymfonyCommand('mautic:segments:update');
+        $commandTester->assertCommandIsSuccessful();
+
+        $leadsInSegmentIn = $leadListModel->getListLeadRepository()->findBy(['list' => $leadSegmentIn]);
+        self::assertCount(0, $leadsInSegmentIn);
+
+        $leadsInSegmentNotIn = $leadListModel->getListLeadRepository()->findBy(['list' => $leadSegmentNotIn]);
+        self::assertCount(0, $leadsInSegmentNotIn);
+    }
+
     private function createLead(string $name, string $email, ?Company $companyName = null): Lead
     {
         $lead = new Lead();
