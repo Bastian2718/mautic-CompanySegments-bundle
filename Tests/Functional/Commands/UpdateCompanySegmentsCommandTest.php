@@ -778,7 +778,7 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
             ],
         ];
 
-        $leadSegment = $this->createLeadSegment('Test Segment In And Not In', 'test_segment_in_not_in', true, $filtersToLeadSegment);
+        $leadSegment   = $this->createLeadSegment('Test Segment In And Not In', 'test_segment_in_not_in', true, $filtersToLeadSegment);
         $leadListModel = static::getContainer()->get('mautic.lead.model.list');
         assert($leadListModel instanceof \Mautic\LeadBundle\Model\ListModel);
 
