@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\Functional\Commands;
 
 use Mautic\LeadBundle\Entity\Company;
@@ -38,8 +40,8 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         $this->em->persist($leadThree);
         $this->em->flush();
 
-        $companySegmentOne    = $this->createCompanySegment('Test Segment 1', 'test_segment');
-        $companiesSegmentsOne = $this->addCompanyToSegments($companyGlobo, $companySegmentOne);
+        $companySegmentOne = $this->createCompanySegment('Test Segment 1', 'test_segment');
+        $this->addCompanyToSegments($companyGlobo, $companySegmentOne);
         $filters              = [
             'filters' => [
                 'glue'       => 'and',
@@ -64,13 +66,18 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         $command       = $application->find('leuchtfeuer:abm:segments-update');
         $commandTester = new CommandTester($command);
         $commandTester->execute([]);
+        self::assertSame(0, $commandTester->getStatusCode());
 
         $resultCompaniesSegmentsAfter = $this->em->getRepository(CompaniesSegments::class)->findAll();
         self::assertCount(2, $resultCompaniesSegmentsAfter);
-        assert($resultCompaniesSegmentsAfter[0] instanceof CompaniesSegments);
-        assert($resultCompaniesSegmentsAfter[1] instanceof CompaniesSegments);
-        self::assertEquals($resultCompaniesSegmentsAfter[0]->getCompany()->getId(), $resultCompaniesSegmentsAfter[1]->getCompany()->getId());
-        self::assertEquals($resultCompaniesSegmentsAfter[1]->getCompanySegment()->getId(), $companySegmentTwo->getId());
+
+        $segmentIds = array_map(fn ($cs) => $cs->getCompanySegment()->getId(), $resultCompaniesSegmentsAfter);
+        self::assertContains($companySegmentOne->getId(), $segmentIds);
+        self::assertContains($companySegmentTwo->getId(), $segmentIds);
+
+        foreach ($resultCompaniesSegmentsAfter as $companiesSegments) {
+            self::assertSame($companyGlobo->getId(), $companiesSegments->getCompany()->getId());
+        }
     }
 
     public function testUpdateLeadSegmentsUsingExcludeACompanySegment(): void
@@ -84,15 +91,15 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         $leadThree = $this->createLead('Mat Doe', 'leadthree@mautic.com');
         $leadFour  = $this->createLead('Braw Doe', 'leadfour@mautic.com');
 
-        $companyLeadGloboLeadOne = $this->addLeadToCompany($companyGlobo, $leadOne);
-        $companyLeadGloboLeadTwo = $this->addLeadToCompany($companyGlobo, $leadTwo);
-        $companyLeadSbtLeadThree = $this->addLeadToCompany($companySbt, $leadThree);
-        $companyLeadSbtLeadFour  = $this->addLeadToCompany($companySbt, $leadFour);
+        $this->addLeadToCompany($companyGlobo, $leadOne);
+        $this->addLeadToCompany($companyGlobo, $leadTwo);
+        $this->addLeadToCompany($companySbt, $leadThree);
+        $this->addLeadToCompany($companySbt, $leadFour);
 
         $totalCompanyLeadsBefore = $this->em->getRepository(CompanyLead::class)->findAll();
         self::assertCount(4, $totalCompanyLeadsBefore);
-        $companySegmentOne             = $this->createCompanySegment('Test Company Segment 1', 'test_comp_segment');
-        $companiesSegmentsOne          = $this->addCompanyToSegments($companyGlobo, $companySegmentOne);
+        $companySegmentOne = $this->createCompanySegment('Test Company Segment 1', 'test_comp_segment');
+        $this->addCompanyToSegments($companyGlobo, $companySegmentOne);
         $resultCompaniesSegmentsBefore = $this->em->getRepository(CompaniesSegments::class)->findAll();
         self::assertCount(1, $resultCompaniesSegmentsBefore);
 
@@ -109,16 +116,15 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
             ],
         ];
 
-        // Start Lead Segments
-        $leadSegmentOne                = $this->createLeadSegment('Test Segment 1', 'test_segment', true, $filtersToLeadSegment);
-        $leadListModel                 = static::getContainer()->get('mautic.lead.model.list');
+        $leadSegmentOne = $this->createLeadSegment('Test Segment 1', 'test_segment', true, $filtersToLeadSegment);
+        $leadListModel  = static::getContainer()->get('mautic.lead.model.list');
         assert($leadListModel instanceof \Mautic\LeadBundle\Model\ListModel);
-        // Get total of lead in list ( segments )
+
+        // Before running the segment update command, no leads should be in the segment yet
         $leadListTotalBefore = $leadListModel->getListLeadRepository()->findAll();
-        // result zero because was add in $leadSegmentOne
         self::assertCount(0, $leadListTotalBefore);
 
-        // COMMAND MAUTIC SEG UPDATE
+        // Run Mautic contact segment update command
         $kernel        = static::getContainer()->get('kernel');
         assert($kernel instanceof \Symfony\Component\HttpKernel\KernelInterface);
         $application   = new Application($kernel);
@@ -126,6 +132,7 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         $command       = $application->find('mautic:segments:update');
         $commandTester = new CommandTester($command);
         $commandTester->execute([]);
+        self::assertSame(0, $commandTester->getStatusCode());
 
         self::assertStringContainsString('2 total contact(s) to be added', $commandTester->getDisplay());
 
@@ -133,7 +140,7 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         self::assertCount(2, $leadListTotalAfter);
     }
 
-    public function testUpdateCompanySegmentsAndUpdateLeadSegmentCommandAddingAllContactsLessCompanSegment(): void
+    public function testUpdateCompanySegmentsAndUpdateLeadSegmentCommandAddingAllContactsLessCompanySegment(): void
     {
         $companyGlobo  = $this->addCompany('Globo', 'contact@globo.com');
         $companySbt    = $this->addCompany('SBT', 'contact@sbt.com');
@@ -144,18 +151,18 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         $leadThree = $this->createLead('Mat Doe', 'leadthree@mautic.com');
         $leadFour  = $this->createLead('Braw Doe', 'leadfour@mautic.com');
 
-        $companyLeadGloboLeadOne = $this->addLeadToCompany($companyGlobo, $leadOne);
-        $companyLeadGloboLeadTwo = $this->addLeadToCompany($companyGlobo, $leadTwo);
-        $companyLeadSbtLeadThree = $this->addLeadToCompany($companySbt, $leadThree);
-        $companyLeadSbtLeadFour  = $this->addLeadToCompany($companySbt, $leadFour);
+        $this->addLeadToCompany($companyGlobo, $leadOne);
+        $this->addLeadToCompany($companyGlobo, $leadTwo);
+        $this->addLeadToCompany($companySbt, $leadThree);
+        $this->addLeadToCompany($companySbt, $leadFour);
 
         $totalCompanyLeadsBefore = $this->em->getRepository(CompanyLead::class)->findAll();
         self::assertCount(4, $totalCompanyLeadsBefore);
 
-        $companySegmentOne    = $this->createCompanySegment('Test Company Segment 1', 'test_comp_segment');
+        $companySegmentOne = $this->createCompanySegment('Test Company Segment 1', 'test_comp_segment');
 
-        // globo added in Company Segment 1
-        $companiesSegmentsOne          = $this->addCompanyToSegments($companyGlobo, $companySegmentOne);
+        // Manually add Globo to Company Segment 1
+        $this->addCompanyToSegments($companyGlobo, $companySegmentOne);
         $resultCompaniesSegmentsBefore = $this->em->getRepository(CompaniesSegments::class)->findAll();
         self::assertCount(1, $resultCompaniesSegmentsBefore);
 
@@ -172,11 +179,10 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
             ],
         ];
 
-        // globo will be added in cs2 after command
-        $companySegmentTwo             = $this->createCompanySegment('Test Company Segment 2', 'test_comp_segment2', true, $filtersToCompanySegment);
+        // Company Segment 2 filters for companies that are in Company Segment 1 (Globo should match after update)
+        $companySegmentTwo = $this->createCompanySegment('Test Company Segment 2', 'test_comp_segment2', true, $filtersToCompanySegment);
 
-        // Start Lead Segments
-        $leadSegmentOne                = $this->createLeadSegment('Test Segment 1', 'test_segment');
+        $leadSegmentOne = $this->createLeadSegment('Test Segment 1', 'test_segment');
 
         $filtersToLeadSegment = [
             [
@@ -206,12 +212,11 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         $leadListModel = static::getContainer()->get('mautic.lead.model.list');
         assert($leadListModel instanceof \Mautic\LeadBundle\Model\ListModel);
 
-        // Get total of lead in list ( segments )
+        // Before running the segment update command, no leads should be in the segment yet
         $leadListTotalBefore = $leadListModel->getListLeadRepository()->findAll();
-        // result zero because was add in $leadSegmentOne
         self::assertCount(0, $leadListTotalBefore);
 
-        // COMMAND ABM SEG UPDATE
+        // Run ABM company segment update command
         $kernel        = static::getContainer()->get('kernel');
         assert($kernel instanceof \Symfony\Component\HttpKernel\KernelInterface);
         $application   = new Application($kernel);
@@ -219,6 +224,7 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         $command       = $application->find('leuchtfeuer:abm:segments-update');
         $commandTester = new CommandTester($command);
         $commandTester->execute([]);
+        self::assertSame(0, $commandTester->getStatusCode());
         self::assertStringContainsString('1 total company(es) to be added', $commandTester->getDisplay());
 
         $resultCompaniesSegmentsAfter = $this->em->getRepository(CompaniesSegments::class)->findAll();
@@ -226,7 +232,7 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         // globo was added now in second company segment
         self::assertCount(2, $resultCompaniesSegmentsAfter);
 
-        // COMMAND MAUTIC SEG UPDATE
+        // Run Mautic contact segment update command
         $kernel        = static::getContainer()->get('kernel');
         assert($kernel instanceof \Symfony\Component\HttpKernel\KernelInterface);
         $application   = new Application($kernel);
@@ -234,6 +240,7 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         $command       = $application->find('mautic:segments:update');
         $commandTester = new CommandTester($command);
         $commandTester->execute([]);
+        self::assertSame(0, $commandTester->getStatusCode());
 
         self::assertStringContainsString('2 total contact(s) to be added', $commandTester->getDisplay());
 
@@ -252,15 +259,15 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         $leadThree = $this->createLead('Mat Doe', 'leadthree@mautic.com');
         $leadFour  = $this->createLead('Braw Doe', 'leadfour@mautic.com');
 
-        $companyLeadGloboLeadOne = $this->addLeadToCompany($companyGlobo, $leadOne);
-        $companyLeadGloboLeadTwo = $this->addLeadToCompany($companyGlobo, $leadTwo);
-        $companyLeadSbtLeadThree = $this->addLeadToCompany($companySbt, $leadThree);
-        $companyLeadSbtLeadFour  = $this->addLeadToCompany($companySbt, $leadFour);
+        $this->addLeadToCompany($companyGlobo, $leadOne);
+        $this->addLeadToCompany($companyGlobo, $leadTwo);
+        $this->addLeadToCompany($companySbt, $leadThree);
+        $this->addLeadToCompany($companySbt, $leadFour);
 
         $totalCompanyLeadsBefore = $this->em->getRepository(CompanyLead::class)->findAll();
         self::assertCount(4, $totalCompanyLeadsBefore);
-        $companySegmentOne             = $this->createCompanySegment('Test Company Segment 1', 'test_comp_segment');
-        $companiesSegmentsOne          = $this->addCompanyToSegments($companyGlobo, $companySegmentOne);
+        $companySegmentOne = $this->createCompanySegment('Test Company Segment 1', 'test_comp_segment');
+        $this->addCompanyToSegments($companyGlobo, $companySegmentOne);
         $resultCompaniesSegmentsBefore = $this->em->getRepository(CompaniesSegments::class)->findAll();
         self::assertCount(1, $resultCompaniesSegmentsBefore);
         $filtersToLeadSegment = [
@@ -272,15 +279,15 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
                 'object'     => 'company_segments',
             ],
         ];
-        // Start Lead Segments
-        $leadSegmentOne                = $this->createLeadSegment('Test Segment 1', 'test_segment', true, $filtersToLeadSegment);
-        $leadListModel                 = static::getContainer()->get('mautic.lead.model.list');
+        $leadSegmentOne = $this->createLeadSegment('Test Segment 1', 'test_segment', true, $filtersToLeadSegment);
+        $leadListModel  = static::getContainer()->get('mautic.lead.model.list');
         assert($leadListModel instanceof \Mautic\LeadBundle\Model\ListModel);
-        // Get total of lead in list ( segments )
+
+        // Before running the segment update command, no leads should be in the segment yet
         $leadListTotalBefore = $leadListModel->getListLeadRepository()->findAll();
-        // result zero because was add in $leadSegmentOne
         self::assertCount(0, $leadListTotalBefore);
-        // COMMAND MAUTIC SEG UPDATE
+
+        // Run Mautic contact segment update command
         $kernel        = static::getContainer()->get('kernel');
         assert($kernel instanceof \Symfony\Component\HttpKernel\KernelInterface);
         $application   = new Application($kernel);
@@ -288,6 +295,7 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         $command       = $application->find('mautic:segments:update');
         $commandTester = new CommandTester($command);
         $commandTester->execute([]);
+        self::assertSame(0, $commandTester->getStatusCode());
         self::assertStringContainsString('2 total contact(s) to be added', $commandTester->getDisplay());
         $leadListTotalAfter = $leadListModel->getListLeadRepository()->findAll();
         self::assertCount(2, $leadListTotalAfter);
@@ -304,21 +312,21 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         $leadThree = $this->createLead('Mat Doe', 'leadthree@mautic.com');
         $leadFour  = $this->createLead('Braw Doe', 'leadfour@mautic.com');
 
-        $companyLeadGloboLeadOne = $this->addLeadToCompany($companyGlobo, $leadOne);
-        $companyLeadSbtLeadThree = $this->addLeadToCompany($companySbt, $leadThree);
-        $companyLeadSbtLeadFour  = $this->addLeadToCompany($companySbt, $leadFour);
+        $this->addLeadToCompany($companyGlobo, $leadOne);
+        $this->addLeadToCompany($companySbt, $leadThree);
+        $this->addLeadToCompany($companySbt, $leadFour);
 
         $totalCompanyLeadsBefore = $this->em->getRepository(CompanyLead::class)->findAll();
         self::assertCount(3, $totalCompanyLeadsBefore);
 
-        $companySegmentGlobo     = $this->createCompanySegment('Test Company Segment globo', 'test_comp_segment_globo');
-        $companySegmentSbt       = $this->createCompanySegment('Test Company Segment Sbt', 'test_comp_segment_sbt');
-        $companySegmentRecord    = $this->createCompanySegment('Test Company Segment Record', 'test_comp_segment_record');
+        $companySegmentGlobo  = $this->createCompanySegment('Test Company Segment globo', 'test_comp_segment_globo');
+        $companySegmentSbt    = $this->createCompanySegment('Test Company Segment Sbt', 'test_comp_segment_sbt');
+        $companySegmentRecord = $this->createCompanySegment('Test Company Segment Record', 'test_comp_segment_record');
 
-        // globo added in Company Segment 1
-        $companiesSegmentsGlobo  = $this->addCompanyToSegments($companyGlobo, $companySegmentGlobo);
-        $companiesSegmentsSbt    = $this->addCompanyToSegments($companySbt, $companySegmentSbt);
-        $companiesSegmentsRecord = $this->addCompanyToSegments($companyRecord, $companySegmentRecord);
+        // Add companies to their respective segments
+        $this->addCompanyToSegments($companyGlobo, $companySegmentGlobo);
+        $this->addCompanyToSegments($companySbt, $companySegmentSbt);
+        $this->addCompanyToSegments($companyRecord, $companySegmentRecord);
 
         $filtersToLeadSegment = [
             [
@@ -332,7 +340,7 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
 
         $leadSegmentTwo = $this->createLeadSegment('Test Segment all not empty', 'test_segment_all_not_empty', true, $filtersToLeadSegment);
 
-        // COMMAND MAUTIC SEG UPDATE
+        // Run Mautic contact segment update command
         $kernel        = static::getContainer()->get('kernel');
         assert($kernel instanceof \Symfony\Component\HttpKernel\KernelInterface);
         $application   = new Application($kernel);
@@ -340,6 +348,7 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         $command       = $application->find('mautic:segments:update');
         $commandTester = new CommandTester($command);
         $commandTester->execute([]);
+        self::assertSame(0, $commandTester->getStatusCode());
 
         self::assertStringContainsString('3 total contact(s) to be added', $commandTester->getDisplay());
 
@@ -366,14 +375,9 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         $this->addLeadToSegment($contactWithSegment1, $leadSegment1);
         $this->addLeadToSegment($contactWithSegment2, $leadSegment2);
 
-        $contactWithoutSegment   = $this->addLeadToCompany($companyWithLeadWithoutSegment, $contactWithoutSegment);
-        $contactWithSegment1     = $this->addLeadToCompany($companyWithLeadWithSegment1, $contactWithSegment1);
-        $contactWithSegment2     = $this->addLeadToCompany($companyWithLeadWithSegment2, $contactWithSegment2);
-
-        $this->em->persist($contactWithoutSegment);
-        $this->em->persist($contactWithSegment1);
-        $this->em->persist($contactWithSegment2);
-        $this->em->flush();
+        $this->addLeadToCompany($companyWithLeadWithoutSegment, $contactWithoutSegment);
+        $this->addLeadToCompany($companyWithLeadWithSegment1, $contactWithSegment1);
+        $this->addLeadToCompany($companyWithLeadWithSegment2, $contactWithSegment2);
 
         $filterSegment1              = [
             'filters' => [
@@ -435,6 +439,7 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         $command       = $application->find('leuchtfeuer:abm:segments-update');
         $commandTester = new CommandTester($command);
         $commandTester->execute([]);
+        self::assertSame(0, $commandTester->getStatusCode());
 
         $companiesInSegment1 = $this->em->getRepository(CompaniesSegments::class)
     ->findBy(['companySegment' => $companySegmentLeadList1]);
