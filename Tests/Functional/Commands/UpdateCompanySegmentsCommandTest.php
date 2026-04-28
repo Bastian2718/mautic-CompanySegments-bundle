@@ -571,6 +571,130 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         self::assertContains('leadsegment2', $companyNames);
     }
 
+    /**
+     * Tests that a company is removed from a segment (orphan removal) when it no longer matches the filter.
+     *
+     * Setup:
+     *   Company Segment (test_revenue_segment) : Filter = companyannual_revenue >= 100000
+     *
+     * Before first command:
+     *   +---------+---------------------+-------------------+
+     *   | Company | Annual Revenue      | Company Segments  |
+     *   +---------+---------------------+-------------------+
+     *   | Acme    | 200000              | --                |
+     *   +---------+---------------------+-------------------+
+     *
+     * After first leuchtfeuer:abm:segments-update:
+     *   +---------+---------------------+-------------------+
+     *   | Acme    | 200000              | Revenue Segment   |  <-- added by filter
+     *   +---------+---------------------+-------------------+
+     *
+     * Change Acme revenue to 50000, then after second command:
+     *   +---------+---------------------+-------------------+
+     *   | Acme    | 50000               | --                |  <-- removed (orphan)
+     *   +---------+---------------------+-------------------+
+     */
+    public function testUpdateCompanySegmentsRemovesOrphanCompanies(): void
+    {
+        $company = $this->addCompany('Acme', 'contact@acme.com');
+        $company->addUpdatedField('companyannual_revenue', '200000');
+        $companyModel = static::getContainer()->get('mautic.lead.model.company');
+        \assert($companyModel instanceof \Mautic\LeadBundle\Model\CompanyModel);
+        $companyModel->saveEntity($company);
+
+        $filters = [
+            'filters' => [
+                'glue'       => 'and',
+                'operator'   => 'gte',
+                'properties' => [
+                    'filter' => '100000',
+                ],
+                'field'  => 'companyannual_revenue',
+                'type'   => 'number',
+                'object' => 'company',
+            ],
+        ];
+
+        $companySegment = $this->createCompanySegment('Revenue Segment', 'test_revenue_segment', true, $filters);
+
+        // First run: company should be added
+        $commandTester = $this->testSymfonyCommand('leuchtfeuer:abm:segments-update');
+        $commandTester->assertCommandIsSuccessful();
+        self::assertStringContainsString('1 total company(es) to be added', $commandTester->getDisplay());
+
+        $companiesInSegment = $this->em->getRepository(CompaniesSegments::class)
+            ->findBy(['companySegment' => $companySegment]);
+        self::assertCount(1, $companiesInSegment);
+        self::assertSame($company->getId(), $companiesInSegment[0]->getCompany()->getId());
+
+        // Change revenue so company no longer matches
+        $company->addUpdatedField('companyannual_revenue', '50000');
+        $companyModel->saveEntity($company);
+
+        // Second run: company should be removed
+        $commandTester = $this->testSymfonyCommand('leuchtfeuer:abm:segments-update');
+        $commandTester->assertCommandIsSuccessful();
+        self::assertStringContainsString('1 total company(es) to be removed', $commandTester->getDisplay());
+
+        $companiesInSegment = $this->em->getRepository(CompaniesSegments::class)
+            ->findBy(['companySegment' => $companySegment]);
+        self::assertCount(0, $companiesInSegment);
+    }
+
+    /**
+     * Tests that a manually added company remains in a segment even when it no longer matches the filter.
+     *
+     * Setup:
+     *   Company Segment (test_manual_segment) : Filter = companyannual_revenue >= 100000
+     *
+     * Company state:
+     *   +---------+---------------------+-------------------+
+     *   | Company | Annual Revenue      | Manually Added    |
+     *   +---------+---------------------+-------------------+
+     *   | Acme    | 50000               | true              |  <-- does NOT match filter
+     *   +---------+---------------------+-------------------+
+     *
+     * After leuchtfeuer:abm:segments-update:
+     *   +---------+---------------------+-------------------+
+     *   | Acme    | 50000               | Revenue Segment   |  <-- stays because manually added
+     *   +---------+---------------------+-------------------+
+     */
+    public function testManuallyAddedCompanyStaysInSegmentWhenFilterNoLongerMatches(): void
+    {
+        $company = $this->addCompany('Acme', 'contact@acme.com');
+        $company->addUpdatedField('companyannual_revenue', '50000');
+        $companyModel = static::getContainer()->get('mautic.lead.model.company');
+        \assert($companyModel instanceof \Mautic\LeadBundle\Model\CompanyModel);
+        $companyModel->saveEntity($company);
+
+        $filters = [
+            'filters' => [
+                'glue'       => 'and',
+                'operator'   => 'gte',
+                'properties' => [
+                    'filter' => '100000',
+                ],
+                'field'  => 'companyannual_revenue',
+                'type'   => 'number',
+                'object' => 'company',
+            ],
+        ];
+
+        $companySegment = $this->createCompanySegment('Revenue Segment', 'test_manual_segment', true, $filters);
+
+        // Manually add company to segment
+        $this->addCompanyToSegments($company, $companySegment, true, false);
+
+        $commandTester = $this->testSymfonyCommand('leuchtfeuer:abm:segments-update');
+        $commandTester->assertCommandIsSuccessful();
+
+        $companiesInSegment = $this->em->getRepository(CompaniesSegments::class)
+            ->findBy(['companySegment' => $companySegment, 'manuallyRemoved' => false]);
+        self::assertCount(1, $companiesInSegment);
+        self::assertTrue($companiesInSegment[0]->isManuallyAdded());
+        self::assertSame($company->getId(), $companiesInSegment[0]->getCompany()->getId());
+    }
+
     private function createLead(string $name, string $email, ?Company $companyName = null): Lead
     {
         $lead = new Lead();
@@ -634,12 +758,14 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         return $company;
     }
 
-    private function addCompanyToSegments(Company $company, CompanySegment $companySegment): CompaniesSegments
+    private function addCompanyToSegments(Company $company, CompanySegment $companySegment, bool $manuallyAdded = false, bool $manuallyRemoved = false): CompaniesSegments
     {
         $companiesSegments = new CompaniesSegments();
         $companiesSegments->setCompany($company);
         $companiesSegments->setCompanySegment($companySegment);
         $companiesSegments->setDateAdded(new \DateTime());
+        $companiesSegments->setManuallyAdded($manuallyAdded);
+        $companiesSegments->setManuallyRemoved($manuallyRemoved);
         $this->em->persist($companiesSegments);
         $this->em->flush();
 
