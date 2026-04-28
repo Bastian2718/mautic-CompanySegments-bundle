@@ -15,6 +15,32 @@ use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\MauticMysqlTestCase;
 
 class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
 {
+    /**
+     * Tests that a company segment with an "in" filter on another company segment
+     * correctly adds matching companies when the update command is executed.
+     *
+     * Setup:
+     *   Company Segment 1 (test_segment)  : Manually contains Globo
+     *   Company Segment 2 (test_segment2) : Filter = company_segments IN [Segment 1]
+     *
+     * Before command:
+     *   +--------+---------------+
+     *   | Company| Segments      |
+     *   +--------+---------------+
+     *   | Globo  | Segment 1     |
+     *   | SBT    | --            |
+     *   | Record | --            |
+     *   +--------+---------------+
+     *
+     * After leuchtfeuer:abm:segments-update:
+     *   +--------+---------------+
+     *   | Company| Segments      |
+     *   +--------+---------------+
+     *   | Globo  | Segment 1, 2  |  <-- added to Segment 2 by filter
+     *   | SBT    | --            |
+     *   | Record | --            |
+     *   +--------+---------------+
+     */
     public function testUpdateCompanySegmentsCommandAddItemInNewSegment(): void
     {
         $companyGlobo  = $this->addCompany('Globo', 'contact@globo.com');
@@ -72,6 +98,27 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         }
     }
 
+    /**
+     * Tests that a lead segment with a "!in" (exclude) filter on a company segment
+     * correctly excludes leads whose company belongs to that segment.
+     *
+     * Setup:
+     *   Company Segment 1 (test_comp_segment) : Manually contains Globo
+     *   Lead Segment 1 (test_segment)         : Filter = company_segments !IN [Segment 1]
+     *
+     * Company-Lead links:
+     *   +--------+-------+
+     *   | Company| Leads |
+     *   +--------+-------+
+     *   | Globo  | 1, 2  |
+     *   | SBT    | 3, 4  |
+     *   | Record | --    |
+     *   +--------+-------+
+     *
+     * After mautic:segments:update:
+     *   Lead Segment 1 should contain leads 3 and 4 (SBT leads).
+     *   Leads 1 and 2 are excluded because Globo is in Company Segment 1.
+     */
     public function testUpdateLeadSegmentsUsingExcludeACompanySegment(): void
     {
         $companyGlobo  = $this->addCompany('Globo', 'contact@globo.com');
@@ -126,6 +173,31 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         self::assertCount(2, $leadListTotalAfter);
     }
 
+    /**
+     * Tests a combined workflow: first running the company segment update, then the lead segment update.
+     *
+     * Setup:
+     *   Company Segment 1 (test_comp_segment)  : Manually contains Globo
+     *   Company Segment 2 (test_comp_segment2) : Filter = company_segments IN [Segment 1]
+     *   Lead Segment 2 (test_segment2)         : Filter = address1 != "asdasdaadasd"
+     *                                            AND company_segments !IN [Segment 2]
+     *
+     * Company-Lead links:
+     *   +--------+-------+
+     *   | Company| Leads |
+     *   +--------+-------+
+     *   | Globo  | 1, 2  |
+     *   | SBT    | 3, 4  |
+     *   | Record | --    |
+     *   +--------+-------+
+     *
+     * Step 1 - leuchtfeuer:abm:segments-update:
+     *   Globo is auto-added to Company Segment 2 (matches filter).
+     *
+     * Step 2 - mautic:segments:update:
+     *   Lead Segment 2 should contain leads 3 and 4 only.
+     *   Leads 1 and 2 are excluded because Globo is now in Company Segment 2.
+     */
     public function testUpdateCompanySegmentsAndUpdateLeadSegmentCommandAddingAllContactsLessCompanySegment(): void
     {
         $companyGlobo  = $this->addCompany('Globo', 'contact@globo.com');
@@ -222,6 +294,27 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         self::assertCount(2, $leadListTotalAfter);
     }
 
+    /**
+     * Tests that a lead segment with an "empty" filter on company_segments correctly
+     * includes only leads whose company has no company segments assigned.
+     *
+     * Setup:
+     *   Company Segment 1 (test_comp_segment) : Manually contains Globo
+     *   Lead Segment 1 (test_segment)         : Filter = company_segments IS EMPTY
+     *
+     * Company-Lead links:
+     *   +--------+-------+-------------------+
+     *   | Company| Leads | Company Segments  |
+     *   +--------+-------+-------------------+
+     *   | Globo  | 1, 2  | Segment 1         |
+     *   | SBT    | 3, 4  | --                |
+     *   | Record | --    | --                |
+     *   +--------+-------+-------------------+
+     *
+     * After mautic:segments:update:
+     *   Lead Segment 1 should contain leads 3 and 4 (SBT leads).
+     *   Leads 1 and 2 are excluded because their company (Globo) has a segment.
+     */
     public function testUpdateLeadSegmentWithCompanySegmentEmpty(): void
     {
         $companyGlobo  = $this->addCompany('Globo', 'contact@globo.com');
@@ -269,6 +362,29 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         self::assertCount(2, $leadListTotalAfter);
     }
 
+    /**
+     * Tests that a lead segment with a "!empty" filter on company_segments correctly
+     * includes all leads whose company has at least one company segment assigned.
+     *
+     * Setup:
+     *   Company Segment globo  : Manually contains Globo
+     *   Company Segment sbt    : Manually contains SBT
+     *   Company Segment record : Manually contains Record
+     *   Lead Segment (test_segment_all_not_empty) : Filter = company_segments IS NOT EMPTY
+     *
+     * Company-Lead links:
+     *   +--------+-------+-------------------+
+     *   | Company| Leads | Company Segments  |
+     *   +--------+-------+-------------------+
+     *   | Globo  | 1     | Segment globo     |
+     *   | SBT    | 3, 4  | Segment sbt       |
+     *   | Record | --    | Segment record    |
+     *   +--------+-------+-------------------+
+     *
+     * After mautic:segments:update:
+     *   Lead Segment should contain leads 1, 3, and 4.
+     *   Lead 2 is excluded because it is not linked to any company.
+     */
     public function testUpdateLeadSegmentsWithContactsWithAllContactsInAnyCompanySegment(): void
     {
         $companyGlobo  = $this->addCompany('Globo', 'contact@globo.com');
@@ -320,6 +436,39 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         self::assertCount(3, $leadListTotalAfter);
     }
 
+    /**
+     * Tests that company segments can be filtered by contact segment membership.
+     *
+     * Setup:
+     *   Lead Segment 1 (segment_1) : Contains contactWithSegment1
+     *   Lead Segment 2 (segment_2) : Contains contactWithSegment2
+     *
+     * Company-Contact links:
+     *   +--------------------+---------+------------------+
+     *   | Company            | Contact | Lead Segments    |
+     *   +--------------------+---------+------------------+
+     *   | noleadsegment      | 1       | --               |
+     *   | leadsegment1       | 2       | Segment 1        |
+     *   | leadsegment2       | 3       | Segment 2        |
+     *   | companywithoutlead | --      | --               |
+     *   +--------------------+---------+------------------+
+     *
+     * Company Segments and their filters:
+     *   +---------------------------+------------------------------------------+
+     *   | Company Segment           | Filter                                   |
+     *   +---------------------------+------------------------------------------+
+     *   | Lead List 1 Segment Filter| contactsegmentmembership IN [Segment 1]  |
+     *   | Lead List 2 Segment Filter| contactsegmentmembership IN [Segment 2]  |
+     *   | Empty Lead Segments       | contactsegmentmembership IS EMPTY        |
+     *   | Not Empty Lead Segments   | contactsegmentmembership IS NOT EMPTY    |
+     *   +---------------------------+------------------------------------------+
+     *
+     * After leuchtfeuer:abm:segments-update:
+     *   | Lead List 1 Segment Filter | -> leadsegment1                      |
+     *   | Lead List 2 Segment Filter | -> leadsegment2                      |
+     *   | Empty Lead Segments        | -> noleadsegment, companywithoutlead |
+     *   | Not Empty Lead Segments    | -> leadsegment1, leadsegment2        |
+     */
     public function testUpdateCompanySegmentsWithLeadListFilter(): void
     {
         $companyWithLeadWithoutSegment  = $this->addCompany('noleadsegment', 'contact@globo.com');
