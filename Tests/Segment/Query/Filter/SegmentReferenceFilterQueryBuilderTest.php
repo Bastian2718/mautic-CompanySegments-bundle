@@ -179,7 +179,7 @@ class SegmentReferenceFilterQueryBuilderTest extends MauticMysqlTestCase
 
         $this->queryBuilder->applyQuery($queryBuilder, $filter);
 
-        $sql = $queryBuilder->getDebugOutput();
+        $sql = (string) $queryBuilder->getDebugOutput();
 
         // Verify lead-path specific structural components
         self::assertStringContainsString('companies_leads', $sql);
