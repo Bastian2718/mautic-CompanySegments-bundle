@@ -12,8 +12,6 @@ use Mautic\LeadBundle\Entity\ListLead;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompaniesSegments;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Entity\CompanySegment;
 use MauticPlugin\LeuchtfeuerCompanySegmentsBundle\Tests\MauticMysqlTestCase;
-use Symfony\Bundle\FrameworkBundle\Console\Application;
-use Symfony\Component\Console\Tester\CommandTester;
 
 class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
 {
@@ -59,14 +57,8 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
 
         self::assertCount(1, $resultCompaniesSegmentsBefore);
 
-        $kernel        = static::getContainer()->get('kernel');
-        assert($kernel instanceof \Symfony\Component\HttpKernel\KernelInterface);
-        $application   = new Application($kernel);
-        $application->setAutoExit(false);
-        $command       = $application->find('leuchtfeuer:abm:segments-update');
-        $commandTester = new CommandTester($command);
-        $commandTester->execute([]);
-        self::assertSame(0, $commandTester->getStatusCode());
+        $commandTester = $this->testSymfonyCommand('leuchtfeuer:abm:segments-update');
+        $commandTester->assertCommandIsSuccessful();
 
         $resultCompaniesSegmentsAfter = $this->em->getRepository(CompaniesSegments::class)->findAll();
         self::assertCount(2, $resultCompaniesSegmentsAfter);
@@ -125,14 +117,8 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         self::assertCount(0, $leadListTotalBefore);
 
         // Run Mautic contact segment update command
-        $kernel        = static::getContainer()->get('kernel');
-        assert($kernel instanceof \Symfony\Component\HttpKernel\KernelInterface);
-        $application   = new Application($kernel);
-        $application->setAutoExit(false);
-        $command       = $application->find('mautic:segments:update');
-        $commandTester = new CommandTester($command);
-        $commandTester->execute([]);
-        self::assertSame(0, $commandTester->getStatusCode());
+        $commandTester = $this->testSymfonyCommand('mautic:segments:update');
+        $commandTester->assertCommandIsSuccessful();
 
         self::assertStringContainsString('2 total contact(s) to be added', $commandTester->getDisplay());
 
@@ -217,14 +203,8 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         self::assertCount(0, $leadListTotalBefore);
 
         // Run ABM company segment update command
-        $kernel        = static::getContainer()->get('kernel');
-        assert($kernel instanceof \Symfony\Component\HttpKernel\KernelInterface);
-        $application   = new Application($kernel);
-        $application->setAutoExit(false);
-        $command       = $application->find('leuchtfeuer:abm:segments-update');
-        $commandTester = new CommandTester($command);
-        $commandTester->execute([]);
-        self::assertSame(0, $commandTester->getStatusCode());
+        $commandTester = $this->testSymfonyCommand('leuchtfeuer:abm:segments-update');
+        $commandTester->assertCommandIsSuccessful();
         self::assertStringContainsString('1 total company(es) to be added', $commandTester->getDisplay());
 
         $resultCompaniesSegmentsAfter = $this->em->getRepository(CompaniesSegments::class)->findAll();
@@ -233,14 +213,8 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         self::assertCount(2, $resultCompaniesSegmentsAfter);
 
         // Run Mautic contact segment update command
-        $kernel        = static::getContainer()->get('kernel');
-        assert($kernel instanceof \Symfony\Component\HttpKernel\KernelInterface);
-        $application   = new Application($kernel);
-        $application->setAutoExit(false);
-        $command       = $application->find('mautic:segments:update');
-        $commandTester = new CommandTester($command);
-        $commandTester->execute([]);
-        self::assertSame(0, $commandTester->getStatusCode());
+        $commandTester = $this->testSymfonyCommand('mautic:segments:update');
+        $commandTester->assertCommandIsSuccessful();
 
         self::assertStringContainsString('2 total contact(s) to be added', $commandTester->getDisplay());
 
@@ -288,14 +262,8 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         self::assertCount(0, $leadListTotalBefore);
 
         // Run Mautic contact segment update command
-        $kernel        = static::getContainer()->get('kernel');
-        assert($kernel instanceof \Symfony\Component\HttpKernel\KernelInterface);
-        $application   = new Application($kernel);
-        $application->setAutoExit(false);
-        $command       = $application->find('mautic:segments:update');
-        $commandTester = new CommandTester($command);
-        $commandTester->execute([]);
-        self::assertSame(0, $commandTester->getStatusCode());
+        $commandTester = $this->testSymfonyCommand('mautic:segments:update');
+        $commandTester->assertCommandIsSuccessful();
         self::assertStringContainsString('2 total contact(s) to be added', $commandTester->getDisplay());
         $leadListTotalAfter = $leadListModel->getListLeadRepository()->findAll();
         self::assertCount(2, $leadListTotalAfter);
@@ -341,14 +309,8 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         $leadSegmentTwo = $this->createLeadSegment('Test Segment all not empty', 'test_segment_all_not_empty', true, $filtersToLeadSegment);
 
         // Run Mautic contact segment update command
-        $kernel        = static::getContainer()->get('kernel');
-        assert($kernel instanceof \Symfony\Component\HttpKernel\KernelInterface);
-        $application   = new Application($kernel);
-        $application->setAutoExit(false);
-        $command       = $application->find('mautic:segments:update');
-        $commandTester = new CommandTester($command);
-        $commandTester->execute([]);
-        self::assertSame(0, $commandTester->getStatusCode());
+        $commandTester = $this->testSymfonyCommand('mautic:segments:update');
+        $commandTester->assertCommandIsSuccessful();
 
         self::assertStringContainsString('3 total contact(s) to be added', $commandTester->getDisplay());
 
@@ -432,14 +394,8 @@ class UpdateCompanySegmentsCommandTest extends MauticMysqlTestCase
         $companySegmentEmptyLeadList    = $this->createCompanySegment('Empty Lead Segments', 'empty_lead_segments', true, $filterEmptySegment);
         $companySegmentNotEmptyLeadList = $this->createCompanySegment('Not Empty Lead Segments', 'not_empty_lead_segments', true, $filterNotEmptySegment);
 
-        $kernel        = static::getContainer()->get('kernel');
-        assert($kernel instanceof \Symfony\Component\HttpKernel\KernelInterface);
-        $application   = new Application($kernel);
-        $application->setAutoExit(false);
-        $command       = $application->find('leuchtfeuer:abm:segments-update');
-        $commandTester = new CommandTester($command);
-        $commandTester->execute([]);
-        self::assertSame(0, $commandTester->getStatusCode());
+        $commandTester = $this->testSymfonyCommand('leuchtfeuer:abm:segments-update');
+        $commandTester->assertCommandIsSuccessful();
 
         $companiesInSegment1 = $this->em->getRepository(CompaniesSegments::class)
     ->findBy(['companySegment' => $companySegmentLeadList1]);
