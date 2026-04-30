@@ -210,7 +210,7 @@ class SegmentReferenceFilterQueryBuilder extends BaseFilterQueryBuilder implemen
 
             $contactSegment      = new CompanySegmentAsLeadSegment($companySegment);
             $filters             = $this->leadSegmentFilterFactory->getSegmentFilters($contactSegment);
-            $segmentQueryBuilder = $this->companySegmentQueryBuilder->assembleCompaniesSegmentQueryBuilderLeadSegment(
+            $segmentQueryBuilder = $this->companySegmentQueryBuilder->assembleCompaniesSegmentQueryBuilder(
                 $companySegment,
                 $filters,
                 true

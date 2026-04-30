@@ -159,6 +159,36 @@ class SegmentReferenceFilterQueryBuilderTest extends MauticMysqlTestCase
         $this->queryBuilder->applyQuery($queryBuilder, $filter);
     }
 
+    /**
+     * Tests that applyQuery routes to the lead segment path when the query builder
+     * originates from the leads table, generating SQL with the companies_leads join.
+     */
+    public function testApplyQueryToLeadSegment(): void
+    {
+        $this->companyRepositoryMock->method('getTableAlias')
+            ->willReturn('comp');
+
+        $queryBuilder = new QueryBuilder($this->connectionMock);
+        $queryBuilder->select('1');
+        $queryBuilder->from(MAUTIC_TABLE_PREFIX.'leads', 'leads');
+
+        $filter = $this->getContactSegmentFilter('eq', (string) $this->segment->getId());
+
+        $this->randomParameterMock->method('generateRandomParameterName')
+            ->willReturnOnConsecutiveCalls('cl_alias', 'sub_comp', 'sub_lead', 'sub_cl', 'sub_cs', 'para1', 'para2');
+
+        $this->queryBuilder->applyQuery($queryBuilder, $filter);
+
+        $sql = (string) $queryBuilder->getDebugOutput(); // @phpstan-ignore-line
+
+        // Verify lead-path specific structural components
+        self::assertStringContainsString('companies_leads', $sql);
+        self::assertStringContainsString('is_primary = 1', $sql);
+        self::assertStringContainsString('EXISTS', $sql);
+        self::assertStringContainsString('manually_added', $sql);
+        self::assertStringContainsString('manually_removed', $sql);
+    }
+
     private function createNewSegment(): CompanySegment
     {
         $segment = new CompanySegment();
