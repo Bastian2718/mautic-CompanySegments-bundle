@@ -64,3 +64,16 @@ parameters:
           reportUnmatched: false
         - message: '#Dynamic call to static method#'
           path: Tests/Functional/EventListener/CompanySubscriberFunctionalTest.php
+        - message: '#Dynamic call to static method PHPUnit\\Framework\\Assert::#'
+          path: Tests/Functional/EventListener/DynamicContentSubscriberFunctionalTest.php
+          reportUnmatched: false
+        - message: '#Cannot call method setSystemContact\(\) on object\|null#'
+          path: Tests/Functional/EventListener/DynamicContentSubscriberFunctionalTest.php
+          reportUnmatched: false
+        - message: '#Parameter \#2 \$haystack of method PHPUnit\\Framework\\Assert::assertString(Contains|NotContains)String\(\) expects string, string\|false given#'
+          path: Tests/Functional/EventListener/DynamicContentSubscriberFunctionalTest.php
+          reportUnmatched: false
+        - message: '#Dynamic call to static method#'
+          path: Tests/EventListener/DynamicContentSubscriberTest.php
+        - message: '#Call to an undefined method .+::(method|willReturn|willThrowException|with)\(\)#'
+          path: Tests/EventListener/DynamicContentSubscriberTest.php

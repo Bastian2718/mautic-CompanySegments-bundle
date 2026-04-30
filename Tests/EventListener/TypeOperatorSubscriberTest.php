@@ -167,6 +167,11 @@ class TypeOperatorSubscriberTest extends TestCase
         ];
         $event = new FormAdjustmentEvent($this->form, $alias, $object, $operator, $details);
 
+        $this->fieldChoicesProvider->expects(self::once())
+            ->method('getChoicesForField')
+            ->with('multiselect', 'company_segments')
+            ->willReturn(['Choice A' => 'choice_a']);
+
         $this->form->expects(self::once())
             ->method('add')
             ->with(

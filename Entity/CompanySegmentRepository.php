@@ -156,4 +156,98 @@ class CompanySegmentRepository extends CommonRepository
 
         return $return;
     }
+
+    /**
+     * @see \Mautic\LeadBundle\Entity\LeadListRepository::isContactInAnySegment
+     */
+    public function isCompanyInAnySegment(int $companyId): bool
+    {
+        $tableName = MAUTIC_TABLE_PREFIX.'companies_segments';
+
+        $sql = <<<SQL
+            SELECT segment_id
+            FROM $tableName
+            WHERE company_id = ?
+                AND manually_removed = 0
+            LIMIT 1
+SQL;
+
+        $segmentIds = $this->getEntityManager()->getConnection()
+            ->executeQuery(
+                $sql,
+                [$companyId],
+                [\PDO::PARAM_INT]
+            )
+            ->fetchFirstColumn();
+
+        return [] !== $segmentIds;
+    }
+
+    /**
+     * @see \Mautic\LeadBundle\Entity\LeadListRepository::isNotContactInAnySegment
+     */
+    public function isNotCompanyInAnySegment(int $companyId): bool
+    {
+        return !$this->isCompanyInAnySegment($companyId);
+    }
+
+    /**
+     * @param int[] $expectedSegmentIds
+     *
+     * @see \Mautic\LeadBundle\Entity\LeadListRepository::isContactInSegments
+     */
+    public function isCompanyInSegments(int $companyId, array $expectedSegmentIds): bool
+    {
+        $segmentIds = $this->fetchCompanyToSegmentIdsRelationships($companyId, $expectedSegmentIds);
+
+        return [] !== $segmentIds;
+    }
+
+    /**
+     * @param int[] $expectedSegmentIds
+     *
+     * @see \Mautic\LeadBundle\Entity\LeadListRepository::isNotContactInSegments
+     */
+    public function isNotCompanyInSegments(int $companyId, array $expectedSegmentIds): bool
+    {
+        return !$this->isCompanyInSegments($companyId, $expectedSegmentIds);
+    }
+
+    /**
+     * @param int[] $expectedSegmentIds
+     *
+     * @return int[]
+     *
+     * @see \Mautic\LeadBundle\Entity\LeadListRepository::fetchContactToSegmentIdsRelationships
+     */
+    private function fetchCompanyToSegmentIdsRelationships(int $companyId, array $expectedSegmentIds): array
+    {
+        if ([] === $expectedSegmentIds) {
+            return [];
+        }
+
+        $tableName = MAUTIC_TABLE_PREFIX.'companies_segments';
+
+        $sql = <<<SQL
+            SELECT segment_id
+            FROM $tableName
+            WHERE company_id = ?
+                AND segment_id IN (?)
+                AND manually_removed = 0
+SQL;
+
+        /** @var int[] $result */
+        $result = $this->getEntityManager()->getConnection()
+            ->executeQuery(
+                $sql,
+                [$companyId, $expectedSegmentIds],
+                [
+                    \PDO::PARAM_INT,
+                    \Doctrine\DBAL\ArrayParameterType::INTEGER,
+                ]
+            )
+            ->fetchFirstColumn();
+
+        return array_map('intval', $result);
+    }
 }

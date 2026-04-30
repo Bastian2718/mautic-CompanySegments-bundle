@@ -374,3 +374,32 @@ Mautic.companyBatchSubmit = function() {
 
     return false;
 };
+
+if (typeof Mautic.addDwcFilter !== 'undefined') {
+    var originalAddDwcFilter = Mautic.addDwcFilter;
+
+    Mautic.addDwcFilter = function (elId, elObj) {
+        var filterId = '#available_' + elObj + '_' + elId;
+        var filterOption = mQuery(filterId);
+        var fieldType = filterOption.data('field-type');
+
+        if (fieldType === 'company_segments') {
+            filterOption.data('field-type', 'leadlist');
+            var result = originalAddDwcFilter.apply(this, arguments);
+
+            var filterNum = parseInt(mQuery('.available-filters').data('index')) - 1;
+            var prefix = 'dwc';
+            var parent = mQuery(filterId).parents('.dynamic-content-filter, .dwc-filter');
+            if (parent.length && parent.attr('id')) {
+                prefix = parent.attr('id');
+            }
+
+            var typeFieldSelector = '#' + prefix + '_filters_' + filterNum + '_type';
+            mQuery(typeFieldSelector).val('company_segments');
+
+            return result;
+        }
+
+        return originalAddDwcFilter.apply(this, arguments);
+    };
+}
