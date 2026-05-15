@@ -30,7 +30,7 @@ Variables
                 <br/>
                 <span class="small">({{ item.createdByUser }})</span>
             {% endif %}
-            {% if item.getFilters() is not empty %}<i title="{{ 'mautic.core.filters'|trans }}" class="fa fa-fw fa-filter"></i>{% endif %}
+            {% if item.getFilters() is not empty %}<i title="{{ 'mautic.core.filters'|trans }}" class="ri-fw ri-filter-2-fill fs-14"></i>{% endif %}
             {{ customContent('segment.name', mauticTemplateVars|default([])) }}
         </div>
         {% if item.description %}
